@@ -1,7 +1,9 @@
 # AGENTS.md — Horde Runner
 
 Guida per chi (persona o agente AI) riprende il lavoro su questo progetto.
-Stato attuale, roadmap e backlog sono in [PLANNING.md](PLANNING.md).
+Stato attuale, roadmap e backlog sono in [PLANNING.md](PLANNING.md); presentazione in [README.md](README.md)
+e spiegazione didattica del progetto in [docs/MANUALE.md](docs/MANUALE.md) (da aggiornare quando cambiano
+meccaniche, tecnologie o risorse).
 
 ## Il progetto
 
