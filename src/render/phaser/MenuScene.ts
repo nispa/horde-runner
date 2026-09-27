@@ -3,7 +3,7 @@ import Phaser from 'phaser';
 import type { LevelDef } from '../../core/types';
 import { loadProgress } from '../../platform/progress';
 import { Sfx } from './Sfx';
-import { button, label } from './ui';
+import { arcade, button, label } from './ui';
 
 export class MenuScene extends Phaser.Scene {
   constructor(private levels: LevelDef[]) {
@@ -31,7 +31,7 @@ export class MenuScene extends Phaser.Scene {
 
     this.add.tileSprite(0, 0, w, h, 'tiles', 0).setOrigin(0).setAlpha(0.35);
     const top = Math.max(60, h * 0.12);
-    label(this, w / 2, top, 'HORDE RUNNER', Math.min(48, w / 9), '#6fc0ff');
+    arcade(this, w / 2, top, 'HORDE RUNNER', Math.min(36, w / 13), '#6fc0ff');
     label(this, w / 2, top + 44, 'Scegli il livello', 18);
 
     const gap = 12;
@@ -49,6 +49,10 @@ export class MenuScene extends Phaser.Scene {
       if (best !== undefined) label(this, w / 2 + Math.min(210, w / 2 - 16) - 44, y, `🏆${best}`, 14).setOrigin(0.5);
     });
 
-    label(this, w / 2, h - 24, 'Grafica e suoni: Kenney.nl (CC0)', 12, '#bbbbbb');
+    const lastY = startY + (this.levels.length - 1) * (bh + gap);
+    button(this, w / 2, lastY + bh + gap * 2, '🏆 Classifiche', () => this.scene.start('highscores', { index: 0 }), {
+      width: Math.min(420, w - 32), height: bh, color: 0x8a5a1a,
+    });
+    label(this, w / 2, h - 24, 'Grafica e suoni: Kenney.nl (CC0) · Font: Press Start 2P (OFL)', 12, '#bbbbbb');
   }
 }

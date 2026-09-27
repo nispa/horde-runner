@@ -2,13 +2,14 @@
 // La logica di gioco resta tutta in core/: qui si decide solo "come appare".
 import Phaser from 'phaser';
 import { Game } from '../../core/game';
-import { formatGate, formationRadius, isGoodGate } from '../../core/rules';
+import { computeScore, formatGate, formationRadius, isGoodGate } from '../../core/rules';
 import type { GameEvent, GateOp, LevelDef, LevelTheme, Pickup, Wall, WeaponId } from '../../core/types';
 import { WEAPONS } from '../../core/weapons';
 import { bindInput } from '../../platform/input';
 import { completeLevel } from '../../platform/progress';
 import { Sfx } from './Sfx';
-import { button, label } from './ui';
+import type { ResultData } from './ResultScene';
+import { arcade, label } from './ui';
 
 const FIXED_DT = 1 / 60;
 const VIEW_AHEAD = 32; // metri visibili davanti al giocatore
@@ -62,6 +63,7 @@ export class GameScene extends Phaser.Scene {
   private hud!: Phaser.GameObjects.Text;
   private hudWeapon!: Phaser.GameObjects.Text;
   private hudHordes!: Phaser.GameObjects.Text;
+  private hudScore!: Phaser.GameObjects.Text;
   private bossBar!: Phaser.GameObjects.Container;
   private bossBack!: Phaser.GameObjects.Rectangle;
   private bossFill!: Phaser.GameObjects.Rectangle;
@@ -137,6 +139,7 @@ export class GameScene extends Phaser.Scene {
     this.hud = this.label(12, 17, '', 16).setOrigin(0, 0.5).setDepth(DEPTH.hud);
     this.hudWeapon = this.label(12, 42, '', 16).setOrigin(0, 0.5).setDepth(DEPTH.hud);
     this.hudHordes = this.label(0, 42, '', 16).setOrigin(1, 0.5).setDepth(DEPTH.hud);
+    this.hudScore = arcade(this, 0, 18, '', 12, '#ffd84a').setOrigin(1, 0.5).setDepth(DEPTH.hud);
     this.bossName = this.label(0, -18, '', 16, '#ffb0b0');
     this.bossBack = this.add.rectangle(0, 0, 1, 16, 0x000000, 0.7).setOrigin(0, 0.5);
     this.bossFill = this.add.rectangle(0, 0, 1, 12, COLOR.boss).setOrigin(0, 0.5);
@@ -194,6 +197,7 @@ export class GameScene extends Phaser.Scene {
     (this.children.getByName('hudBg') as Phaser.GameObjects.Rectangle).setSize(this.w, HUD_HEIGHT);
     this.muteButton.setX(this.w - 26);
     this.hudHordes.setX(this.w - 12);
+    this.hudScore.setX(this.w - 52);
     this.bossBarWidth = Math.min(this.w - 32, 480);
     this.bossBar.setX((this.w - this.bossBarWidth) / 2);
     this.bossBack.setSize(this.bossBarWidth, 16);
@@ -385,6 +389,7 @@ export class GameScene extends Phaser.Scene {
       if (this.shownWeapon) this.tweens.add({ targets: this.hudWeapon, scale: { from: 1.5, to: 1 }, duration: 350, ease: 'Back.easeOut' });
       this.shownWeapon = p.weapon;
     }
+    this.hudScore.setText(String(s.score).padStart(6, '0'));
     const hordes = s.hordesLeft;
     const bossAhead = s.boss === null && this.level.entities.some(e => e.type === 'boss');
     const bossAlive = !!s.boss && !s.boss.dead;
@@ -521,34 +526,15 @@ export class GameScene extends Phaser.Scene {
     this.muteButton.setText(this.sfx.muted ? '🔇' : '🔊');
   }
 
+  /** Fine partita: sblocca il livello successivo e apre la schermata arcade dei risultati. */
   private showEnd(): void {
     this.endShown = true;
     const won = this.sim.status === 'won';
-    const { w, h } = this;
-    const soldiers = this.sim.player.soldiers;
-    const next = this.index + 1 < this.levels.length ? this.index + 1 : null;
-    if (won) completeLevel(this.index, soldiers, this.levels.length);
-
-    const title = won ? (next === null ? 'CAMPAGNA COMPLETATA!' : 'VITTORIA!') : 'GAME OVER';
-    const primary = won
-      ? (next === null ? { text: 'Menu', go: () => this.scene.start('menu') } : { text: 'Prossimo livello ▶', go: () => this.scene.restart({ index: next }) })
-      : { text: 'Riprova', go: () => this.scene.restart({ index: this.index }) };
-
-    const layer = this.add.container(0, 0).setDepth(DEPTH.overlay).setAlpha(0);
-    layer.add([
-      this.add.rectangle(0, 0, w, h, 0x000000, 0.65).setOrigin(0),
-      this.label(w / 2, h / 2 - 90, title, Math.min(48, w / 10), won ? '#6fc0ff' : '#ff6b6b'),
-      this.label(w / 2, h / 2 - 40, `Soldati: ${soldiers}  ·  Zombi eliminati: ${this.sim.kills}`, 18),
-      button(this, w / 2, h / 2 + 20, primary.text, primary.go),
-    ]);
-    if (primary.text !== 'Menu') layer.add(button(this, w / 2, h / 2 + 88, 'Menu', () => this.scene.start('menu'), { color: 0x555a66 }));
-    this.tweens.add({ targets: layer, alpha: 1, duration: 400 });
-
-    // Invio/Spazio = azione principale (dopo un attimo, per non saltare la schermata per sbaglio).
-    this.time.delayedCall(500, () => {
-      this.input.keyboard?.once('keydown-ENTER', primary.go);
-      this.input.keyboard?.once('keydown-SPACE', primary.go);
-    });
+    const { lines, total } = computeScore(this.sim.stats);
+    if (won) completeLevel(this.index, total, this.levels.length);
+    const data: ResultData = { index: this.index, won, lines, total };
+    // Un attimo per vedere l'ultima esplosione prima della schermata.
+    this.time.delayedCall(900, () => this.scene.launch('result', data));
   }
 
   /** Nome del livello all'avvio, che poi sfuma. */

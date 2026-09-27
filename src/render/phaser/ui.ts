@@ -33,3 +33,39 @@ export function button(
   }
   return box;
 }
+
+export const ARCADE_FONT = 'Press Start 2P';
+
+/** Testo in stile sala giochi (font pixel). */
+export function arcade(scene: Phaser.Scene, x: number, y: number, text: string, size: number, color = '#ffffff'): Phaser.GameObjects.Text {
+  return scene.add.text(x, y, text, {
+    fontFamily: `"${ARCADE_FONT}", monospace`, fontSize: `${Math.round(size)}px`,
+    color, stroke: '#000000', strokeThickness: Math.max(3, size / 4),
+    resolution: window.devicePixelRatio || 1,
+  }).setOrigin(0.5);
+}
+
+/** Colori dei posti in classifica, come nei vecchi cabinati. */
+const RANK_COLORS = ['#ffd84a', '#d0d8e0', '#e0a060', '#6fc0ff'];
+
+/** Disegna una tabella HIGH SCORES in un container; restituisce la riga evidenziata (se c'è). */
+export function scoreTable(
+  scene: Phaser.Scene, parent: Phaser.GameObjects.Container, entries: { initials: string; score: number }[],
+  cx: number, top: number, rowH: number, highlight = -1,
+): Phaser.GameObjects.Text | null {
+  const size = Math.min(16, rowH * 0.6);
+  let hl: Phaser.GameObjects.Text | null = null;
+  entries.forEach((e, i) => {
+    const color = i === highlight ? '#ff5a5a' : RANK_COLORS[Math.min(i, RANK_COLORS.length - 1)];
+    const pos = `${String(i + 1).padStart(2, ' ')}.`;
+    const row = arcade(scene, cx, top + i * rowH, `${pos} ${e.initials}  ${String(e.score).padStart(7, ' ')}`, size, color);
+    parent.add(row);
+    if (i === highlight) hl = row;
+  });
+  return hl;
+}
+
+/** Lampeggio "arcade" di un testo (per la riga del nuovo record). */
+export function blink(scene: Phaser.Scene, target: Phaser.GameObjects.Text): void {
+  scene.tweens.add({ targets: target, alpha: 0.15, duration: 280, yoyo: true, repeat: -1 });
+}

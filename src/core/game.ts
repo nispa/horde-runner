@@ -1,8 +1,9 @@
 // Simulazione del gioco. Non sa nulla di pixel, canvas o input: riceve comandi e avanza nel tempo.
 import {
-  applyGate, createRng, firepower, formatGate, formatReward, formationRadius, isGoodGate,
+  applyGate, computeScore, createRng, firepower, formatGate, formatReward, formationRadius, isGoodGate,
   BOSS_BITE_INTERVAL, BOSS_HOLD_DISTANCE, BOSS_RADIUS, HORDE_GAP, LANE_LIMIT, PLAYER_STEER_SPEED, SPAWN_AHEAD,
 } from './rules';
+import type { ScoreStats } from './rules';
 import type {
   Boss, BossDef, Bullet, GameEvent, GameStatus, Gate, LevelDef, Pickup, Player, Wall, WaveDef, Zombie,
 } from './types';
@@ -20,6 +21,8 @@ export class Game {
   status: GameStatus = 'playing';
   time = 0;
   kills = 0;
+  /** Statistiche per il punteggio arcade. */
+  readonly stats: ScoreStats = { zombies: 0, brutes: 0, crates: 0, bossKilled: false, bossSeconds: 0, survivors: 0 };
 
   private pendingWaves: (WaveDef & { horde: number })[] = [];
   /** Numero totale di orde del livello (per l'HUD). */
@@ -88,6 +91,11 @@ export class Game {
     return this.zombies.length + this.pendingWaves.reduce((a, w) => a + w.count, 0);
   }
 
+  /** Punteggio attuale (i sopravvissuti si aggiungono al traguardo). */
+  get score(): number {
+    return computeScore(this.stats).total;
+  }
+
   /** Vero mentre la squadra è ferma a combattere il boss. */
   get bossFight(): boolean {
     const b = this.boss;
@@ -101,6 +109,7 @@ export class Game {
     this.spawn();
     this.moveZombies(dt);
     this.moveBoss(dt);
+    if (this.bossFight) this.stats.bossSeconds += dt;
     this.shoot(dt);
     this.moveBullets(dt);
     this.checkGates();
@@ -115,6 +124,7 @@ export class Game {
       this.events.push({ kind: 'end', won: false });
     } else if (this.player.z >= this.level.length) {
       this.status = 'won';
+      this.stats.survivors = this.player.soldiers;
       this.events.push({ kind: 'end', won: true });
     }
   }
@@ -253,6 +263,8 @@ export class Game {
     z.hp -= dmg;
     if (z.hp <= 0) {
       this.kills++;
+      if (z.bite > 1) this.stats.brutes++;
+      else this.stats.zombies++;
       this.events.push({ kind: 'zombieKilled', x: z.x, z: z.z, bite: z.bite });
     }
   }
@@ -271,6 +283,7 @@ export class Game {
       b.hp = 0;
       b.dead = true;
       this.kills++;
+      this.stats.bossKilled = true;
       this.events.push({ kind: 'bossKilled', x: b.x, z: b.z });
       this.emit(b.x, b.z, `${b.name} abbattuto!`, 'good');
     }
@@ -278,6 +291,7 @@ export class Game {
 
   private destroyWall(w: Wall): void {
     w.destroyed = true;
+    this.stats.crates++;
     w.hp = 0;
     const p = this.player;
     const { kind, value } = w.reward;

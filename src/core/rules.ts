@@ -16,6 +16,48 @@ export const BOSS_BITE_INTERVAL = 0.6;
 /** Ondate più vicine di così (in metri) contano come un'unica orda nell'HUD. */
 export const HORDE_GAP = 12;
 
+/** Punteggio arcade. */
+export const SCORE = {
+  zombie: 10,
+  brute: 50,
+  crate: 25,
+  boss: 2000,
+  /** Bonus velocità: parte da `bossSpeedMax` e cala di `bossSpeedPerSecond` al secondo di scontro. */
+  bossSpeedMax: 3000,
+  bossSpeedPerSecond: 150,
+  /** Per ogni soldato vivo al traguardo. */
+  survivor: 100,
+};
+
+export interface ScoreStats {
+  zombies: number;
+  brutes: number;
+  crates: number;
+  bossKilled: boolean;
+  /** Durata dello scontro col boss in secondi (se abbattuto). */
+  bossSeconds: number;
+  /** Soldati vivi al traguardo (0 se la partita è persa). */
+  survivors: number;
+}
+
+export interface ScoreLine { label: string; count: number; points: number }
+
+/** Scompone il punteggio in voci (per la schermata finale) e ne calcola il totale. */
+export function computeScore(s: ScoreStats): { lines: ScoreLine[]; total: number } {
+  const lines: ScoreLine[] = [
+    { label: 'Zombi', count: s.zombies, points: s.zombies * SCORE.zombie },
+    { label: 'Bruti', count: s.brutes, points: s.brutes * SCORE.brute },
+    { label: 'Casse', count: s.crates, points: s.crates * SCORE.crate },
+  ];
+  if (s.bossKilled) {
+    lines.push({ label: 'Boss', count: 1, points: SCORE.boss });
+    const speed = Math.max(0, Math.round(SCORE.bossSpeedMax - s.bossSeconds * SCORE.bossSpeedPerSecond));
+    lines.push({ label: 'Bonus velocità', count: Math.round(s.bossSeconds), points: speed });
+  }
+  if (s.survivors > 0) lines.push({ label: 'Sopravvissuti', count: s.survivors, points: s.survivors * SCORE.survivor });
+  return { lines, total: lines.reduce((a, l) => a + l.points, 0) };
+}
+
 export function applyGate(soldiers: number, gate: GateOp): number {
   switch (gate.op) {
     case '+': return soldiers + gate.value;

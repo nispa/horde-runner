@@ -6,7 +6,7 @@ const KEY = 'horde-runner:progress';
 export interface Progress {
   /** Indice del livello più avanzato giocabile (0 = solo il primo). */
   unlocked: number;
-  /** Miglior numero di soldati sopravvissuti per livello. */
+  /** Miglior punteggio per livello. */
   best: Record<number, number>;
 }
 
@@ -22,10 +22,10 @@ export function loadProgress(): Progress {
 }
 
 /** Registra una vittoria: sblocca il livello successivo e aggiorna il record. */
-export function completeLevel(index: number, soldiers: number, levelCount: number): Progress {
+export function completeLevel(index: number, score: number, levelCount: number): Progress {
   const p = loadProgress();
   p.unlocked = Math.max(p.unlocked, Math.min(index + 1, levelCount - 1));
-  p.best[index] = Math.max(p.best[index] ?? 0, soldiers);
+  p.best[index] = Math.max(p.best[index] ?? 0, score);
   try { localStorage.setItem(KEY, JSON.stringify(p)); } catch { /* ignora */ }
   return p;
 }

@@ -1,7 +1,7 @@
 // Test del core senza grafica: dimostrano che la logica è indipendente dal renderer.
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/core/game';
-import { applyGate, FIRE_RANGE } from '../src/core/rules';
+import { applyGate, computeScore, FIRE_RANGE } from '../src/core/rules';
 import type { LevelDef } from '../src/core/types';
 
 const base: Omit<LevelDef, 'entities'> = {
@@ -165,5 +165,26 @@ describe('HUD', () => {
     run(g, 3);
     expect(g.hordesLeft).toBe(1);
     expect(g.zombiesLeft).toBe(4);
+  });
+});
+
+describe('punteggio', () => {
+  it('somma zombi, bruti, casse, boss e sopravvissuti', () => {
+    const r = computeScore({ zombies: 10, brutes: 2, crates: 1, bossKilled: true, bossSeconds: 4, survivors: 30 });
+    expect(r.total).toBe(10 * 10 + 2 * 50 + 25 + 2000 + (3000 - 4 * 150) + 30 * 100);
+  });
+
+  it('una partita vinta assegna i sopravvissuti, una persa no', () => {
+    const won = new Game({ ...base, length: 10, entities: [] });
+    run(won, 2);
+    expect(won.status).toBe('won');
+    expect(won.score).toBe(10 * 100);
+
+    const lost = new Game({ ...base, start: { soldiers: 1, fireRate: 1, damage: 0 }, entities: [
+      { type: 'wave', z: 10, count: 5, hp: 100, speed: 3, spread: 0 },
+    ] });
+    run(lost, 5);
+    expect(lost.status).toBe('lost');
+    expect(lost.score).toBe(0);
   });
 });
