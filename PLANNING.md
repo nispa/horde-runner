@@ -15,7 +15,7 @@ Per ora è ad uso personale; tra qualche giorno verrà pubblicato per farlo prov
 |---|---|---|
 | 1 | Prototipo Canvas 2D, core separato dalla grafica | ✅ fatto |
 | 2 | Renderer Phaser con sprite e suoni Kenney (CC0) | ✅ fatto |
-| 3 | PWA installabile e giocabile offline | ✅ fatto (manca la pubblicazione in HTTPS) |
+| 3 | PWA installabile e giocabile offline, pubblicata su GitHub Pages | ✅ fatto |
 | 4 | Vista 3D in prospettiva con Three.js (stesso core) | da fare |
 | 5 | Eventuale porting in Unreal Engine (già installato) — JSON riusabili come DataTable | opzionale |
 
@@ -70,21 +70,21 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
   senza conseguenze.
 - Le armi sono **sidegrade di forza simile**: ogni livello resta vincibile qualunque arma si preferisca.
 
-## Lavoro in corso
+## Pubblicazione
 
-- [ ] **Commit** dei lanci dei nemici + zombi più aggressivi + ritaratura (codice pronto e testato,
-  in attesa che l'utente lo provi). Anche `tools/levels/`, `AGENTS.md`, `PLANNING.md`.
+- Repository: https://github.com/nispa/horde-runner (pubblico)
+- Gioco online: **https://nispa.github.io/horde-runner/**
+- A ogni push su `master` il workflow `.github/workflows/deploy.yml` esegue test e build e pubblica
+  `dist/` (GitHub Pages con sorgente "GitHub Actions", non "Deploy from a branch").
 
 ## Prossimi passi (backlog, in ordine di priorità indicativa)
 
 1. **Tri-shot in stile "1943"** (richiesta dell'utente): arma con colpo dritto + due diagonali;
    eventuale livello di potenziamento raccogliendo più volte la stessa arma.
-2. **Pubblicazione** su GitHub Pages (HTTPS → PWA installabile sul telefono) per gli amici.
-   Da fare: repository remoto, `base` di Vite, workflow di deploy.
-3. **Classifica online** condivisa: seconda implementazione di `HighscoreStore` + servizio esterno.
-4. Rifinitura: testi nitidi su schermi ad alta densità (scala del canvas), musica di sottofondo,
+2. **Classifica online** condivisa: seconda implementazione di `HighscoreStore` + servizio esterno.
+3. Rifinitura: testi nitidi su schermi ad alta densità (scala del canvas), musica di sottofondo,
    eventuale icona/aspetto delle armi sugli sprite dei soldati.
-5. **Step 4**: renderer Three.js con vista in prospettiva.
+4. **Step 4**: renderer Three.js con vista in prospettiva.
 
 ## Note e problemi noti
 

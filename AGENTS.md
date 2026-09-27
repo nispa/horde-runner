@@ -108,4 +108,5 @@ Regole:
 
 - Codice e commenti in italiano, nello stile dei file esistenti (commenti brevi sul "perché").
 - Messaggi di commit in italiano: titolo sintetico + elenco puntato delle modifiche.
-- Il ramo principale è `master`; nessun remote configurato (vedi PLANNING.md per la pubblicazione).
+- Il ramo principale è `master` (remote `origin` = github.com/nispa/horde-runner). Ogni push su master
+  pubblica il gioco su https://nispa.github.io/horde-runner/ tramite GitHub Actions.
