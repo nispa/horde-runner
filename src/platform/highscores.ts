@@ -23,7 +23,7 @@ const INITIALS_KEY = 'horde-runner:initials';
 function defaultTable(level: number): ScoreEntry[] {
   // Il primo è impegnativo (circa una buona partita), l'ultimo si batte anche perdendo a metà.
   const names = ['ACE', 'ZED', 'BOB', 'KIM', 'MAX', 'LUX', 'RAY', 'EVA', 'TOM', 'JOY'];
-  const tops = [12000, 14000, 13000, 11000, 22000];
+  const tops = [12000, 19000, 16000, 23000, 32000];
   const top = tops[level] ?? tops[tops.length - 1];
   return names.map((initials, i) => ({ initials, score: Math.round((top * (1 - i * 0.1)) / 50) * 50, date: '1985-01-01' }));
 }

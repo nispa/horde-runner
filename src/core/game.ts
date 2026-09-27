@@ -1,11 +1,13 @@
 // Simulazione del gioco. Non sa nulla di pixel, canvas o input: riceve comandi e avanza nel tempo.
 import {
   applyGate, computeScore, createRng, firepower, formatGate, formatReward, formationRadius, isGoodGate,
-  BOSS_BITE_INTERVAL, BOSS_HOLD_DISTANCE, BOSS_RADIUS, HORDE_GAP, LANE_LIMIT, PLAYER_STEER_SPEED, SPAWN_AHEAD,
+  BOSS_BITE_INTERVAL, BOSS_HOLD_DISTANCE, BOSS_RADIUS, BRUTE_CHASE_SPEED, BRUTE_EXTRA_REACH, HORDE_GAP, LANE_LIMIT,
+  ZOMBIE_CHASE_DISTANCE, ZOMBIE_CHASE_SPEED, ZOMBIE_REACH, PLAYER_STEER_SPEED, SPAWN_AHEAD,
 } from './rules';
 import type { ScoreStats } from './rules';
+import { HAZARD, isLobbed, stepGround, stepLob } from './hazards';
 import type {
-  Boss, BossDef, Bullet, GameEvent, GameStatus, Gate, LevelDef, Pickup, Player, Wall, WaveDef, Zombie,
+  AttackDef, Boss, BossDef, Bullet, GameEvent, GameStatus, Gate, Hazard, LevelDef, Pickup, Player, Wall, WaveDef, Zombie,
 } from './types';
 import { WEAPONS } from './weapons';
 
@@ -17,12 +19,14 @@ export class Game {
   pickups: Pickup[] = [];
   zombies: Zombie[] = [];
   bullets: Bullet[] = [];
+  /** Oggetti lanciati dai nemici. */
+  hazards: Hazard[] = [];
   boss: Boss | null = null;
   status: GameStatus = 'playing';
   time = 0;
   kills = 0;
   /** Statistiche per il punteggio arcade. */
-  readonly stats: ScoreStats = { zombies: 0, brutes: 0, crates: 0, bossKilled: false, bossSeconds: 0, survivors: 0 };
+  readonly stats: ScoreStats = { zombies: 0, brutes: 0, crates: 0, hazards: 0, bossKilled: false, bossSeconds: 0, survivors: 0 };
 
   private pendingWaves: (WaveDef & { horde: number })[] = [];
   /** Numero totale di orde del livello (per l'HUD). */
@@ -82,7 +86,7 @@ export class Game {
   get hordesLeft(): number {
     const left = new Set<number>();
     for (const w of this.pendingWaves) left.add(w.horde);
-    for (const z of this.zombies) left.add(z.horde);
+    for (const z of this.zombies) if (z.horde >= 0) left.add(z.horde);
     return left.size;
   }
 
@@ -109,6 +113,8 @@ export class Game {
     this.spawn();
     this.moveZombies(dt);
     this.moveBoss(dt);
+    this.updateThrows(dt);
+    this.moveHazards(dt);
     if (this.bossFight) this.stats.bossSeconds += dt;
     this.shoot(dt);
     this.moveBullets(dt);
@@ -146,6 +152,8 @@ export class Game {
           x: clamp((this.rng() * 2 - 1) * w.spread, -LANE_LIMIT, LANE_LIMIT),
           z: w.z + this.rng() * Math.max(4, w.count * 0.2),
           hp: w.hp, maxHp: w.hp, speed: w.speed * (0.8 + this.rng() * 0.4), bite: w.bite ?? 1, horde: w.horde,
+          // Primo lancio poco dopo essere entrati a tiro (sfalsato tra i nemici), poi ogni `every` secondi.
+          throws: w.throws, throwTimer: w.throws ? 0.3 + this.rng() * Math.min(2, w.throws.every) : 0,
         });
       }
     }
@@ -154,6 +162,7 @@ export class Game {
       this.boss = {
         id: this.nextId++, name: d.name, x: 0, z: d.z, hp: d.hp, maxHp: d.hp,
         speed: d.speed, bite: d.bite, active: true, dead: false, biteTimer: 0,
+        attacks: d.attacks ?? [], attackTimers: (d.attacks ?? []).map(a => a.every * 0.5),
       };
       this.events.push({ kind: 'bossSpawn', name: d.name });
     }
@@ -163,8 +172,11 @@ export class Game {
     const px = this.player.x;
     for (const z of this.zombies) {
       z.z -= z.speed * dt;
-      // Deriva lenta verso il giocatore quando è vicino.
-      if (z.z - this.player.z < 15) z.x += Math.sign(px - z.x) * Math.min(Math.abs(px - z.x), 0.25 * dt);
+      // Inseguono la squadra: aggirarli richiede di spostarsi presto e con decisione.
+      if (z.z - this.player.z < ZOMBIE_CHASE_DISTANCE) {
+        const chase = z.bite > 1 ? BRUTE_CHASE_SPEED : ZOMBIE_CHASE_SPEED;
+        z.x += Math.sign(px - z.x) * Math.min(Math.abs(px - z.x), chase * dt);
+      }
     }
     this.zombies = this.zombies.filter(z => z.z > this.player.z - 2);
   }
@@ -224,6 +236,14 @@ export class Game {
         return true;
       }
     }
+    for (const h of this.hazards) {
+      if (!h.alive || isLobbed(h.kind) || Math.abs(b.x - h.x) > HAZARD.radius[h.kind] + 0.04) continue;
+      if (h.z >= prevZ - 0.4 && h.z <= b.z + 0.4) {
+        if (b.splash) return this.explode(b, h.z), true;
+        this.damageHazard(h, h.kind === 'boulder' ? b.damage * b.wallMul : b.damage);
+        return true;
+      }
+    }
     const boss = this.boss;
     if (boss && !boss.dead && Math.abs(b.x - boss.x) < BOSS_RADIUS && boss.z >= prevZ - 0.5 && boss.z <= b.z + 0.5) {
       if (b.splash) return this.explode(b, boss.z), true;
@@ -254,6 +274,11 @@ export class Game {
     for (const w of this.walls) {
       if (!w.destroyed && Math.abs(w.x - b.x) < w.width / 2 + r && Math.abs(w.z - z) < dz) this.damageWall(w, b.damage * b.wallMul, b.x);
     }
+    for (const h of this.hazards) {
+      if (h.alive && !isLobbed(h.kind) && Math.abs(h.x - b.x) < r + HAZARD.radius[h.kind] && Math.abs(h.z - z) < dz) {
+        this.damageHazard(h, h.kind === 'boulder' ? b.damage * b.wallMul : b.damage);
+      }
+    }
     const boss = this.boss;
     if (boss && !boss.dead && Math.abs(boss.x - b.x) < r + BOSS_RADIUS && Math.abs(boss.z - z) < dz) this.damageBoss(b.damage * b.wallMul, b.x);
   }
@@ -267,6 +292,107 @@ export class Game {
       else this.stats.zombies++;
       this.events.push({ kind: 'zombieKilled', x: z.x, z: z.z, bite: z.bite });
     }
+  }
+
+  private damageHazard(h: Hazard, dmg: number): void {
+    h.hp -= dmg;
+    if (h.hp > 0) return;
+    h.alive = false;
+    this.stats.hazards++;
+    this.events.push({ kind: 'hazardKilled', hazard: h.kind, x: h.x, z: h.z });
+  }
+
+  // --- Attacchi a distanza dei nemici ---
+
+  /** Bruti con `throws` e boss lanciano a intervalli regolari quando la squadra è a tiro. */
+  private updateThrows(dt: number): void {
+    const p = this.player;
+    for (const z of this.zombies) {
+      if (!z.throws) continue;
+      const dz = z.z - p.z;
+      if (dz < 5 || dz > 28) continue;
+      z.throwTimer -= dt;
+      if (z.throwTimer <= 0) {
+        z.throwTimer = z.throws.every;
+        this.launch(z.throws, z.x, z.z);
+      }
+    }
+    const b = this.boss;
+    // Il boss lancia solo da lontano: a contatto con la squadra morde e basta.
+    if (!b || !b.active || b.dead || b.z - p.z > 30 || b.z - p.z < 4) return;
+    b.attacks.forEach((a, i) => {
+      b.attackTimers[i] -= dt;
+      if (b.attackTimers[i] <= 0) {
+        b.attackTimers[i] = a.every;
+        // Parte 3 m davanti al boss: fuori dal raggio delle esplosioni che lo colpirebbero.
+        this.launch(a, b.x, b.z - 3);
+      }
+    });
+  }
+
+  private launch(a: AttackDef, fromX: number, fromZ: number): void {
+    const p = this.player;
+    const base = {
+      kind: a.kind, x: fromX, z: fromZ, height: 0, fromX, fromZ, toX: fromX, toZ: fromZ, t: 0, duration: 1,
+      vz: 0, phase: 0, hp: a.hp ?? 1, maxHp: a.hp ?? 1, damage: a.damage ?? 1, alive: true,
+    };
+    const lead = this.bossFight ? 0 : this.level.playerSpeed * HAZARD.lobTime;
+    if (a.kind === 'rock') {
+      // Mira dove sarà la squadra all'atterraggio: spostandosi di lato la si schiva.
+      this.hazards.push({ ...base, id: this.nextId++, toX: p.x, toZ: p.z + lead, duration: HAZARD.lobTime });
+    } else if (a.kind === 'zombie') {
+      // Atterra poco davanti alla squadra: se non la centra diventa uno zombi da abbattere.
+      // Mai oltre chi lancia: deve atterrare tra lui e la squadra.
+      const toX = clamp(p.x + (this.rng() - 0.5) * 0.6, -LANE_LIMIT, LANE_LIMIT);
+      const toZ = Math.min(p.z + lead + 4 + this.rng() * 6, fromZ - 1);
+      this.hazards.push({ ...base, id: this.nextId++, toX, toZ, duration: HAZARD.lobTime });
+    } else if (a.kind === 'boulder') {
+      // Rotola lungo la corsia in cui si trova la squadra al momento del lancio.
+      this.hazards.push({ ...base, id: this.nextId++, x: p.x, toX: p.x, vz: -HAZARD.boulderSpeed });
+    } else {
+      const n = a.count ?? 1;
+      for (let i = 0; i < n; i++) {
+        const x = clamp(fromX + (i - (n - 1) / 2) * 0.15, -LANE_LIMIT, LANE_LIMIT);
+        this.hazards.push({ ...base, id: this.nextId++, x, toX: x, z: fromZ - i * 0.6, vz: -HAZARD.crowSpeed, phase: i * 1.3 });
+      }
+    }
+    this.events.push({ kind: 'throw', hazard: a.kind, x: fromX, z: fromZ });
+  }
+
+  private moveHazards(dt: number): void {
+    const p = this.player;
+    const reach = formationRadius(p.soldiers);
+    for (const h of this.hazards) {
+      if (!h.alive) continue;
+      const r = HAZARD.radius[h.kind] + reach;
+      if (isLobbed(h.kind)) {
+        if (!stepLob(h, dt)) continue;
+        h.alive = false;
+        const hit = Math.abs(h.x - p.x) < r && Math.abs(h.z - p.z) < 1.5;
+        this.events.push({ kind: 'hazardLand', hazard: h.kind, x: h.x, z: h.z, hit });
+        if (hit) this.hurt(h.damage, h.z);
+        else if (h.kind === 'zombie') {
+          this.zombies.push({
+            id: this.nextId++, x: h.x, z: h.z, hp: h.hp, maxHp: h.hp, speed: 2.5, bite: 1, horde: -1, throwTimer: 0,
+          });
+        }
+      } else {
+        stepGround(h, dt, p.x);
+        if (h.z < p.z - 2) h.alive = false;
+        else if (Math.abs(h.z - p.z) < 0.6 && Math.abs(h.x - p.x) < r) {
+          h.alive = false;
+          this.hurt(h.damage, h.z);
+        }
+      }
+    }
+    this.hazards = this.hazards.filter(h => h.alive);
+  }
+
+  private hurt(count: number, z: number): void {
+    const p = this.player;
+    p.soldiers = Math.max(0, p.soldiers - count);
+    this.events.push({ kind: 'hurt', x: p.x, z, count });
+    this.emit(p.x, z, `-${count}`, 'bad');
   }
 
   private damageWall(w: Wall, dmg: number, x: number): void {
@@ -344,10 +470,12 @@ export class Game {
 
   private checkZombieContact(): void {
     const p = this.player;
-    const r = formationRadius(p.soldiers) + 0.08;
+    const r = formationRadius(p.soldiers) + ZOMBIE_REACH;
     let hits = 0;
     this.zombies = this.zombies.filter(z => {
-      const touching = z.z <= p.z + 0.4 && z.z >= p.z - 1 && Math.abs(z.x - p.x) < r;
+      // I bruti hanno braccia lunghe: passargli accanto di striscio non basta.
+      const reach = r + (z.bite > 1 ? BRUTE_EXTRA_REACH : 0);
+      const touching = z.z <= p.z + 0.4 && z.z >= p.z - 1 && Math.abs(z.x - p.x) < reach;
       if (touching) hits += z.bite;
       return !touching;
     });

@@ -33,6 +33,23 @@ export interface WaveDef {
   spread: number;
   /** Soldati uccisi da ogni zombi che raggiunge la squadra (default 1: >1 = "bruto"). */
   bite?: number;
+  /** Se presente, ogni zombi dell'ondata lancia questo attacco. */
+  throws?: AttackDef;
+}
+
+export type HazardKind = 'rock' | 'zombie' | 'boulder' | 'crow';
+
+/** Attacco a distanza di un nemico o di un boss. */
+export interface AttackDef {
+  kind: HazardKind;
+  /** Secondi tra un lancio e l'altro. */
+  every: number;
+  /** Soldati uccisi all'impatto (roccia, masso, corvo). */
+  damage?: number;
+  /** Vita di ciò che si può abbattere (zombi lanciato, masso, corvo). */
+  hp?: number;
+  /** Quanti ne lancia per volta (corvi). */
+  count?: number;
 }
 
 /** Arma raccoglibile sulla strada: si prende passandoci sopra. */
@@ -52,6 +69,8 @@ export interface BossDef {
   speed: number;
   /** Soldati divorati a ogni morso quando raggiunge la squadra. */
   bite: number;
+  /** Attacchi a distanza del boss. */
+  attacks?: AttackDef[];
 }
 
 export type LevelEntity = GateDef | WallDef | WaveDef | WeaponPickupDef | BossDef;
@@ -124,6 +143,33 @@ export interface Zombie {
   bite: number;
   /** Orda di appartenenza (per l'HUD). */
   horde: number;
+  throws?: AttackDef;
+  throwTimer: number;
+}
+
+/** Oggetto lanciato dai nemici. Le rocce e gli zombi volano a parabola (non si possono colpire);
+ *  massi e corvi si muovono sulla strada e si possono abbattere. */
+export interface Hazard {
+  id: number;
+  kind: HazardKind;
+  x: number;
+  z: number;
+  /** Altezza da terra in metri (solo per il disegno). */
+  height: number;
+  /** Traiettoria a parabola: partenza, arrivo e avanzamento 0..1. */
+  fromX: number;
+  fromZ: number;
+  toX: number;
+  toZ: number;
+  t: number;
+  duration: number;
+  /** Movimento su strada (masso, corvo). */
+  vz: number;
+  phase: number;
+  hp: number;
+  maxHp: number;
+  damage: number;
+  alive: boolean;
 }
 
 export interface Pickup extends WeaponPickupDef {
@@ -144,6 +190,8 @@ export interface Boss {
   active: boolean;
   dead: boolean;
   biteTimer: number;
+  attacks: AttackDef[];
+  attackTimers: number[];
 }
 
 export interface Bullet {
@@ -172,6 +220,9 @@ export type GameEvent =
   | { kind: 'bossSpawn'; name: string }
   | { kind: 'bossHit'; x: number; z: number }
   | { kind: 'bossKilled'; x: number; z: number }
+  | { kind: 'throw'; hazard: HazardKind; x: number; z: number }
+  | { kind: 'hazardLand'; hazard: HazardKind; x: number; z: number; hit: boolean }
+  | { kind: 'hazardKilled'; hazard: HazardKind; x: number; z: number }
   | { kind: 'wallHit'; x: number; z: number }
   | { kind: 'wallDestroyed'; x: number; z: number }
   | { kind: 'zombieKilled'; x: number; z: number; bite: number }

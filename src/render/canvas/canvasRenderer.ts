@@ -74,6 +74,14 @@ export class CanvasRenderer {
       this.text(`${WEAPONS[k.weapon].icon} ${WEAPONS[k.weapon].name}`, x, y, 16);
     }
     for (const z of game.zombies) if (visible(z.z)) this.drawZombie(pz, z.x, z.z, z.hp / z.maxHp);
+    for (const h of game.hazards) {
+      if (!visible(h.z)) continue;
+      const [x, y] = this.project(h.x, h.z - pz);
+      ctx.fillStyle = h.kind === 'crow' ? '#111' : h.kind === 'zombie' ? COLORS.zombie : '#9aa';
+      ctx.beginPath();
+      ctx.arc(x, y - h.height * this.pxPerMeter * 0.8, h.kind === 'boulder' ? 14 : 8, 0, Math.PI * 2);
+      ctx.fill();
+    }
     const boss = game.boss;
     if (boss && !boss.dead && visible(boss.z)) {
       const [x, y] = this.project(boss.x, boss.z - pz);

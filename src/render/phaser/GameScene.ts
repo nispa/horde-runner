@@ -3,7 +3,8 @@
 import Phaser from 'phaser';
 import { Game } from '../../core/game';
 import { computeScore, formatGate, formationRadius, isGoodGate } from '../../core/rules';
-import type { GameEvent, GateOp, LevelDef, LevelTheme, Pickup, Wall, WeaponId } from '../../core/types';
+import { HAZARD, isLobbed } from '../../core/hazards';
+import type { GameEvent, GateOp, Hazard, LevelDef, LevelTheme, Pickup, Wall, WeaponId } from '../../core/types';
 import { WEAPONS } from '../../core/weapons';
 import { bindInput } from '../../platform/input';
 import { completeLevel } from '../../platform/progress';
@@ -22,7 +23,7 @@ const HUD_HEIGHT = 58;
 const BOSS_SCALE = 2.6;
 
 // Frame del tilesheet Kenney (griglia 27 colonne x 64px).
-const FRAME = { crate: 128, splat: 319 };
+const FRAME = { crate: 128, splat: 319, rock: 236, boulder: 238 };
 const GROUND_FRAME: Record<LevelTheme, number> = { grass: 0, dirt: 4, concrete: 6, snow: 11, sand: 14 };
 
 const COLOR = {
@@ -82,6 +83,7 @@ export class GameScene extends Phaser.Scene {
   private walls = new Map<number, WallView>();
   private zombies = new Map<number, Phaser.GameObjects.Image>();
   private pickups = new Map<number, Phaser.GameObjects.Container>();
+  private hazards = new Map<number, { img: Phaser.GameObjects.Image; marker?: Phaser.GameObjects.Ellipse }>();
   private decals: Decal[] = [];
 
   private index = 0;
@@ -107,6 +109,7 @@ export class GameScene extends Phaser.Scene {
     this.walls.clear();
     this.zombies.clear();
     this.pickups.clear();
+    this.hazards.clear();
     this.decals = [];
     this.shownWeapon = null;
 
@@ -246,6 +249,7 @@ export class GameScene extends Phaser.Scene {
     this.syncPickups(pz);
     this.syncZombies(pz);
     this.syncBoss(pz);
+    this.syncHazards(pz);
     this.syncBullets(pz);
     this.syncSquad();
     this.syncDecals(pz);
@@ -292,6 +296,48 @@ export class GameScene extends Phaser.Scene {
         this.pickups.delete(k.id);
       }
     }
+  }
+
+  /** Oggetti lanciati: in volo si alzano e ingrandiscono, con un segnale rosso dove cadranno. */
+  private syncHazards(pz: number): void {
+    const alive = new Set<number>();
+    const t = this.time.now / 1000;
+    for (const h of this.sim.hazards) {
+      alive.add(h.id);
+      let view = this.hazards.get(h.id);
+      if (!view) this.hazards.set(h.id, view = this.makeHazard(h));
+      const lift = h.height * this.ppm * 0.8;
+      view.img.setPosition(this.sx(h.x), this.sy(h.z - pz) - lift);
+      if (isLobbed(h.kind)) {
+        view.img.setScale(view.img.getData('scale') * (1 + h.height / HAZARD.lobHeight * 0.7)).setAngle(h.t * 540);
+        view.marker!.setPosition(this.sx(h.toX), this.sy(h.toZ - pz)).setAlpha(0.25 + h.t * 0.5).setScale(0.6 + h.t * 0.4);
+      } else if (h.kind === 'boulder') {
+        view.img.setAngle(-h.z * 40);
+      } else {
+        // Corvo: ali che sbattono.
+        view.img.setScale(view.img.getData('scale'), view.img.getData('scale') * (0.5 + Math.abs(Math.sin(t * 14 + h.phase)) * 0.6));
+      }
+    }
+    for (const [id, view] of this.hazards) {
+      if (alive.has(id)) continue;
+      view.img.destroy();
+      view.marker?.destroy();
+      this.hazards.delete(id);
+    }
+  }
+
+  private makeHazard(h: Hazard): { img: Phaser.GameObjects.Image; marker?: Phaser.GameObjects.Ellipse } {
+    const unit = this.laneHalf / 240; // scala rispetto alla lane di riferimento (240 px)
+    let img: Phaser.GameObjects.Image;
+    if (h.kind === 'rock') img = this.add.image(0, 0, 'tiles', FRAME.rock).setData('scale', 0.55 * unit);
+    else if (h.kind === 'boulder') img = this.add.image(0, 0, 'tiles', FRAME.boulder).setTint(0xc09070).setData('scale', 1.1 * unit);
+    else if (h.kind === 'zombie') img = this.add.image(0, 0, 'zombie').setData('scale', CHARACTER_SCALE);
+    else img = this.add.image(0, 0, 'crow').setData('scale', unit);
+    img.setScale(img.getData('scale')).setDepth(isLobbed(h.kind) || h.kind === 'crow' ? DEPTH.fx : DEPTH.zombie);
+    if (!isLobbed(h.kind)) return { img };
+    const r = HAZARD.radius[h.kind] * this.laneHalf;
+    const marker = this.add.ellipse(0, 0, r * 2.4, r * 1.2, 0xff3030, 0.4).setStrokeStyle(2, 0xff3030, 0.9).setDepth(DEPTH.decal);
+    return { img, marker };
   }
 
   private syncBoss(pz: number): void {
@@ -475,6 +521,22 @@ export class GameScene extends Phaser.Scene {
         this.fire.explode(14, this.sx(e.x), this.sy(e.z - pz));
         return this.sfx.play('pickup');
       case 'bossSpawn': return this.bossWarning(e.name);
+      case 'throw': return this.sfx.play('whoosh');
+      case 'hazardLand': {
+        const x = this.sx(e.x), y = this.sy(e.z - pz);
+        this.sparks.explode(e.hazard === 'rock' ? 10 : 6, x, y);
+        if (e.hit) this.cameras.main.shake(120, 0.006);
+        return this.sfx.play('thud');
+      }
+      case 'hazardKilled': {
+        const x = this.sx(e.x), y = this.sy(e.z - pz);
+        if (e.hazard === 'boulder') {
+          this.sparks.explode(16, x, y);
+          return this.sfx.play('crateBreak');
+        }
+        this.blood.explode(6, x, y);
+        return this.sfx.play('zombieDie');
+      }
       case 'bossHit':
         // Poche scintille: con armi rapide il boss resterebbe nascosto dagli effetti.
         if (Math.random() < 0.25) this.sparks.explode(1, this.sx(e.x), this.sy(e.z - pz));
@@ -568,6 +630,11 @@ export class GameScene extends Phaser.Scene {
       .fillStyle(0xdddddd).fillRoundedRect(1, 4, 8, 18, 3)
       .fillStyle(0xff4a3a).fillTriangle(1, 6, 9, 6, 5, 0);
     g.generateTexture('bullet_rocket', 10, 28);
+    // Corvo visto dall'alto: ali a "V" con corpo e becco.
+    g.clear().fillStyle(0x151515)
+      .fillTriangle(0, 6, 16, 12, 12, 16).fillTriangle(32, 6, 16, 12, 20, 16)
+      .fillEllipse(16, 14, 7, 14).fillStyle(0xf0a020).fillTriangle(14, 22, 18, 22, 16, 26);
+    g.generateTexture('crow', 32, 28);
     g.clear().fillStyle(0xffffff).fillCircle(4, 4, 4);
     g.generateTexture('spark', 8, 8);
     g.destroy();

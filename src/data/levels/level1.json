@@ -24,6 +24,6 @@
     { "type": "wave", "z": 256, "count": 6, "hp": 90, "speed": 2, "spread": 0.8, "bite": 6 },
     { "type": "wave", "z": 285, "count": 60, "hp": 12, "speed": 3, "spread": 0.9 },
     { "type": "wave", "z": 292, "count": 4, "hp": 120, "speed": 2.2, "spread": 0.7, "bite": 8 },
-    { "type": "boss", "z": 320, "name": "Il Grosso", "hp": 3000, "speed": 1.2, "bite": 3 }
+    { "type": "boss", "z": 320, "name": "Il Grosso", "hp": 3500, "speed": 1.2, "bite": 3, "attacks": [{ "kind": "rock", "every": 3, "damage": 3 }] }
   ]
 }

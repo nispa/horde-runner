@@ -1,18 +1,18 @@
 /// <reference types="node" />
-// Strumento di taratura (non è un test): prova moltiplicatori di vita per zombi e muri.
+// Strumento di taratura (non è un test): prova moltiplicatori della vita degli zombi.
 // Uso: TUNE=1 npx vitest run tune
 import { describe, it } from 'vitest';
 import type { LevelDef } from '../src/core/types';
 import { CAMPAIGN } from '../src/data/campaign';
 import { play, randomBot, smartBot } from './bots';
 
-const SCALES = [0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1];
+const SCALES = [0.4, 0.5, 0.6, 0.7, 0.8, 1];
 const SEEDS = Array.from({ length: 20 }, (_, i) => i + 1);
 
 function scaled(level: LevelDef, k: number): LevelDef {
   return {
     ...level,
-    entities: level.entities.map(e => (e.type === 'gate' || e.type === 'weapon' ? e : { ...e, hp: Math.max(1, Math.round(e.hp * k)) })),
+    entities: level.entities.map(e => (e.type === 'wave' ? { ...e, hp: Math.max(1, Math.round(e.hp * k)) } : e)),
   };
 }
 

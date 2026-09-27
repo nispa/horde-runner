@@ -2,7 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { Game } from '../src/core/game';
 import { applyGate, computeScore, FIRE_RANGE } from '../src/core/rules';
-import type { LevelDef } from '../src/core/types';
+import type { AttackDef, LevelDef } from '../src/core/types';
 
 const base: Omit<LevelDef, 'entities'> = {
   name: 'test', length: 100, playerSpeed: 10,
@@ -170,7 +170,7 @@ describe('HUD', () => {
 
 describe('punteggio', () => {
   it('somma zombi, bruti, casse, boss e sopravvissuti', () => {
-    const r = computeScore({ zombies: 10, brutes: 2, crates: 1, bossKilled: true, bossSeconds: 4, survivors: 30 });
+    const r = computeScore({ zombies: 10, brutes: 2, crates: 1, hazards: 0, bossKilled: true, bossSeconds: 4, survivors: 30 });
     expect(r.total).toBe(10 * 10 + 2 * 50 + 25 + 2000 + (3000 - 4 * 150) + 30 * 100);
   });
 
@@ -186,5 +186,58 @@ describe('punteggio', () => {
     run(lost, 5);
     expect(lost.status).toBe('lost');
     expect(lost.score).toBe(0);
+  });
+});
+
+describe('lanci dei nemici', () => {
+  // Un solo bruto fermo a 15 m che lancia l'attacco indicato; la squadra non spara.
+  const thrower = (throws: AttackDef, soldiers = 20): LevelDef => ({
+    ...base, playerSpeed: 0, start: { soldiers, fireRate: 1, damage: 0 }, entities: [
+      { type: 'wave', z: 15, count: 1, hp: 1e9, speed: 0, spread: 0, bite: 3, throws },
+    ],
+  });
+
+  /** Avanza finché l'oggetto lanciato non atterra (al massimo 6 s). */
+  function untilLanding(g: Game): void {
+    for (let t = 0; t < 6; t += 1 / 60) {
+      g.step(1 / 60);
+      if (g.drainEvents().some(e => e.kind === 'hazardLand')) return;
+    }
+  }
+
+  it('una roccia colpisce chi resta fermo', () => {
+    const g = new Game(thrower({ kind: 'rock', every: 100, damage: 4 }));
+    untilLanding(g);
+    expect(g.player.soldiers).toBe(16);
+  });
+
+  it('una roccia si schiva spostandosi', () => {
+    const g = new Game(thrower({ kind: 'rock', every: 100, damage: 4 }));
+    for (let t = 0; t < 6; t += 1 / 60) {
+      if (g.hazards.length) g.steerTo(0.8); // appena parte il lancio, ci si sposta
+      g.step(1 / 60);
+    }
+    expect(g.player.soldiers).toBe(20);
+  });
+
+  it('uno zombi lanciato che manca il bersaglio diventa un nemico', () => {
+    const g = new Game(thrower({ kind: 'zombie', every: 100, hp: 5 }));
+    untilLanding(g);
+    expect(g.zombies.length).toBe(2);
+  });
+
+  it('un masso si può distruggere sparando', () => {
+    const level = thrower({ kind: 'boulder', every: 100, hp: 10, damage: 5 });
+    level.start = { soldiers: 20, fireRate: 10, damage: 2 };
+    const g = new Game(level);
+    run(g, 3);
+    expect(g.stats.hazards).toBe(1);
+    expect(g.player.soldiers).toBe(20);
+  });
+
+  it('i corvi non abbattuti colpiscono la squadra', () => {
+    const g = new Game(thrower({ kind: 'crow', every: 100, count: 4, hp: 1, damage: 1 }));
+    run(g, 5);
+    expect(g.player.soldiers).toBeLessThan(20);
   });
 });

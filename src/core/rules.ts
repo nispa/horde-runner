@@ -10,17 +10,26 @@ export const SPAWN_AHEAD = 35;
 /** La squadra si ferma quando il boss è entro questa distanza. */
 export const BOSS_HOLD_DISTANCE = 20;
 /** Metà larghezza del boss in unità di lane. */
-export const BOSS_RADIUS = 0.35;
+export const BOSS_RADIUS = 0.45; // più largo della formazione massima (0.35): la squadra allineata lo colpisce tutta
 /** Secondi tra un morso e l'altro del boss a contatto. */
 export const BOSS_BITE_INTERVAL = 0.6;
 /** Ondate più vicine di così (in metri) contano come un'unica orda nell'HUD. */
 export const HORDE_GAP = 12;
+/** Da quanti metri gli zombi iniziano a inseguire lateralmente la squadra, e a che velocità (lane/s). */
+export const ZOMBIE_CHASE_DISTANCE = 22;
+export const ZOMBIE_CHASE_SPEED = 0.55;
+export const BRUTE_CHASE_SPEED = 0.45;
+/** Portata del contatto oltre il bordo della formazione (lane); i bruti arrivano più lontano. */
+export const ZOMBIE_REACH = 0.08;
+export const BRUTE_EXTRA_REACH = 0.12;
 
 /** Punteggio arcade. */
 export const SCORE = {
   zombie: 10,
   brute: 50,
   crate: 25,
+  /** Masso o corvo abbattuto. */
+  hazard: 15,
   boss: 2000,
   /** Bonus velocità: parte da `bossSpeedMax` e cala di `bossSpeedPerSecond` al secondo di scontro. */
   bossSpeedMax: 3000,
@@ -33,6 +42,7 @@ export interface ScoreStats {
   zombies: number;
   brutes: number;
   crates: number;
+  hazards: number;
   bossKilled: boolean;
   /** Durata dello scontro col boss in secondi (se abbattuto). */
   bossSeconds: number;
@@ -49,6 +59,7 @@ export function computeScore(s: ScoreStats): { lines: ScoreLine[]; total: number
     { label: 'Bruti', count: s.brutes, points: s.brutes * SCORE.brute },
     { label: 'Casse', count: s.crates, points: s.crates * SCORE.crate },
   ];
+  if (s.hazards > 0) lines.push({ label: 'Massi e corvi', count: s.hazards, points: s.hazards * SCORE.hazard });
   if (s.bossKilled) {
     lines.push({ label: 'Boss', count: 1, points: SCORE.boss });
     const speed = Math.max(0, Math.round(SCORE.bossSpeedMax - s.bossSeconds * SCORE.bossSpeedPerSecond));

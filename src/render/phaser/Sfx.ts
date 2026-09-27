@@ -27,6 +27,8 @@ const SOUNDS = {
   pickup: { files: ['pickup'], volume: 0.7 },
   bossHit: { files: ['bossHit'], volume: 0.3, throttle: 100, detune: 200 },
   bossRoar: { files: ['bossRoar'], volume: 0.9 },
+  whoosh: { files: ['whoosh'], volume: 0.4, throttle: 150, detune: 300 },
+  thud: { files: ['thud'], volume: 0.5, throttle: 100, detune: 200 },
   win: { files: ['win'], volume: 0.7 },
   lose: { files: ['lose'], volume: 0.7 },
 } satisfies Record<string, SoundDef>;
