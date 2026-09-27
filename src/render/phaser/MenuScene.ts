@@ -53,6 +53,10 @@ export class MenuScene extends Phaser.Scene {
     button(this, w / 2, lastY + bh + gap * 2, '🏆 Classifiche', () => this.scene.start('highscores', { index: 0 }), {
       width: Math.min(420, w - 32), height: bh, color: 0x8a5a1a,
     });
+    // Il menu principale (scelta 2D/3D) è fuori da Phaser: si ricarica la pagina senza parametri.
+    button(this, w / 2, lastY + (bh + gap) * 2 + gap, '◀ Menu principale', () => { location.href = location.pathname; }, {
+      width: Math.min(420, w - 32), height: bh, color: 0x555a66,
+    });
     label(this, w / 2, h - 24, 'Grafica e suoni: Kenney.nl (CC0) · Font: Press Start 2P (OFL)', 12, '#bbbbbb');
   }
 }

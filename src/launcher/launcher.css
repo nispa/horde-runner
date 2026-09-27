@@ -1,0 +1,130 @@
+/* Menu iniziale in stile Minecraft: sfondo di terra, pulsanti di pietra, font pixel. */
+
+.launcher {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 16px;
+  box-sizing: border-box;
+  font-family: 'Press Start 2P', monospace;
+  color: #fff;
+  background: url('./img/dirt.png') repeat;
+  background-size: 64px 64px;
+  image-rendering: pixelated;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+/* Velo scuro sopra la terra, come nel menu di Minecraft. */
+.launcher::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  pointer-events: none;
+}
+
+.launcher > * { position: relative; }
+
+.launcher-title {
+  position: relative;
+  margin: 0 0 8px;
+  font-size: clamp(26px, 7vw, 56px);
+  letter-spacing: 2px;
+  color: #d8d8d8;
+  text-align: center;
+  /* Effetto "blocco": più ombre sovrapposte danno spessore alle lettere. */
+  text-shadow:
+    3px 3px 0 #555, 6px 6px 0 #333, 9px 9px 0 #111;
+}
+
+/* La scritta gialla di traverso che pulsa ("splash text"). */
+.launcher-splash {
+  position: absolute;
+  right: -48px;
+  bottom: -30px;
+  font-size: clamp(10px, 2.2vw, 16px);
+  color: #ffff3c;
+  text-shadow: 2px 2px 0 #3f3f00;
+  white-space: nowrap;
+  transform: rotate(-18deg);
+  animation: launcher-splash 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes launcher-splash {
+  from { transform: rotate(-18deg) scale(1); }
+  to { transform: rotate(-18deg) scale(1.12); }
+}
+
+.launcher-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: min(420px, 100%);
+}
+
+.launcher-row {
+  display: flex;
+  gap: 10px;
+}
+
+.launcher-row > .mc-button { flex: 1; }
+
+/* Pulsante di pietra: bordo chiaro in alto a sinistra, scuro in basso a destra. */
+.mc-button {
+  font-family: inherit;
+  font-size: clamp(10px, 2.6vw, 14px);
+  color: #e0e0e0;
+  text-shadow: 2px 2px 0 #3a3a3a;
+  padding: 14px 10px;
+  background: url('./img/stone.png') repeat, #7a7a7a;
+  background-size: 48px 48px;
+  background-blend-mode: luminosity; /* la pietra Kenney è grigio-azzurra: così diventa grigia */
+  image-rendering: pixelated;
+  border: 3px solid #000;
+  box-shadow: inset 3px 3px 0 rgba(255, 255, 255, 0.45), inset -3px -3px 0 rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.mc-button:hover, .mc-button:focus-visible {
+  color: #ffffa0;
+  outline: 3px solid #fff;
+  outline-offset: -3px;
+}
+
+.mc-button:active { transform: translateY(2px); }
+
+.mc-button.primary { color: #fff; font-size: clamp(12px, 3vw, 16px); }
+
+.launcher-subtitle {
+  font-size: clamp(12px, 3vw, 18px);
+  margin: 0 0 6px;
+  text-shadow: 2px 2px 0 #3a3a3a;
+}
+
+.launcher-hint {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #c8c8c8;
+  text-align: center;
+  max-width: 420px;
+  min-height: 3.4em;
+}
+
+.launcher-footer {
+  position: fixed !important;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: #bbb;
+  pointer-events: none;
+}
