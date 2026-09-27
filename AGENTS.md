@@ -13,7 +13,8 @@ affronta **orde di zombi**, **bruti** che lanciano rocce e un **boss** a fine li
 Campagna di 5 livelli, classifica arcade locale, installabile come PWA.
 
 - Lingua del progetto: **italiano** (testi di gioco, commenti nel codice, messaggi di commit).
-- Stack: **Vite 8 + TypeScript + Phaser 4**, test con **Vitest**, PWA con `vite-plugin-pwa`.
+- Stack: **Vite 8 + TypeScript**, **Phaser 4** (versione 2D), **Three.js** (versione 3D),
+  test con **Vitest**, PWA con `vite-plugin-pwa`.
 
 ## Comandi
 
@@ -41,11 +42,15 @@ src/
     hazards.ts   Fisica degli oggetti lanciati dai nemici (parabola, rotolamento, volo).
     weapons.ts   Tabella armi (valori in data/weapons.json).
   data/        Dati di gioco in JSON: livelli, armi. campaign.ts elenca i livelli in ordine.
-  platform/    Browser: input (mouse/touch/tastiera), progressi e classifiche (localStorage).
+  platform/    Browser: input, progressi, classifiche, impostazioni, audio WebAudio (localStorage).
+  launcher/    Menu iniziale HTML/CSS in stile Minecraft: scelta 2D/3D e Opzioni.
+  ui-dom/      Interfaccia HTML indipendente dal motore (HUD, livelli, risultati, classifiche) — usata dal 3D.
   render/
-    phaser/    Renderer principale: scene Menu, Game, Result (fine partita), HighScores.
+    phaser/    Versione 2D: scene Menu, Game, Result (fine partita), HighScores.
+    three/     Versione 3D: startThree (app), World3D (scena), cameras (iso/da dietro),
+               models/ (pacchetti modelli pluggabili), shaders/ (shader pack pluggabili), catalog.ts.
     canvas/    Renderer prototipo Canvas 2D (/?renderer=canvas), tenuto allineato al minimo.
-  main.ts      Sceglie il renderer.
+  main.ts      Menu iniziale → versione 2D o 3D (import dinamici: ogni motore è un pacchetto separato).
 tests/         Test del core + bot e strumenti di bilanciamento (vedi sotto).
 tools/levels/  Generatore dei livelli (Python): fonte di verità dei JSON dei livelli.
 public/        Asset: Kenney (sprite, suoni), font Press Start 2P, icone PWA.
@@ -61,6 +66,23 @@ Regole:
   test: se si aggiunge un `rng()` dove prima non c'era, i risultati del bilanciamento si spostano.
 - Tutto ciò che è "contenuto" (livelli, armi, nemici che lanciano, boss) va nei **dati**, non nel codice.
 - Il renderer Canvas deve almeno compilare e disegnare le nuove entità in modo semplice.
+- Nuove entità del core vanno disegnate in **tutti** i renderer: Phaser (`GameScene`), Three.js
+  (`World3D` + un metodo nel `ModelPack`), Canvas (minimo).
+
+## Versione 3D: parti pluggabili
+
+- **Pacchetti modelli** (`render/three/models/`): interfaccia `ModelPack` in `types.ts` (folle in
+  instancing, boss, oggetti lanciati, armi, casse, scenario). Oggi: `voxel` (tutto a blocchi,
+  costruito dal codice) e `mixed` (voxel + oggetti di scena Kenney 3D GLB da `public/assets/kenney3d/`).
+  Nuovo pacchetto: implementare `ModelPack`, registrarlo in `models/index.ts`, aggiungerlo in `catalog.ts`.
+  Nel Graveyard Kit c'è già `character-zombie.glb` (con animazioni) per un futuro pacchetto low-poly.
+- **Shader pack** (`render/three/shaders/`): interfaccia `ShaderPack` in `types.ts`; ricevono renderer,
+  scena, telecamera e luci (anche `squadLight`) e restituiscono una pipeline di post-produzione.
+  Shader GLSL propri in `effects.ts`. Nuovo pack: file in `shaders/`, registrarlo in `shaders/index.ts`
+  e in `catalog.ts`. `World3D.resetAtmosphere()` ripristina luci e cielo prima di applicare un pack.
+- Mondo 3D: 1 unità = 1 metro, strada larga `2 × ROAD_HALF` (8 m); `wx(x)`/`wz(z)` convertono
+  dalle coordinate del core (avanti = −Z).
+- Tasti in partita: **C** telecamera, **V** shader, **M** muto, **Esc** livelli.
 
 ## Livelli e bilanciamento
 
@@ -87,6 +109,7 @@ Regole:
 ## Asset e licenze
 
 - Sprite, tile e suoni: pacchetti **Kenney.nl** (CC0) — licenze in `public/assets/**/License*.txt`.
+- Modelli 3D: **Kenney Nature Kit** e **Graveyard Kit** (CC0) — `public/assets/kenney3d/*/License.txt`.
 - Font: **Press Start 2P** (SIL OFL) — `public/fonts/OFL.txt`.
 - Suoni in OGG con fallback MP3 (Safari/iOS). Nuovi suoni: aggiungerli in `render/phaser/Sfx.ts`
   e in entrambi i formati (ffmpeg è disponibile sulla macchina di sviluppo).
@@ -95,16 +118,21 @@ Regole:
 
 ## Test nel browser (attenzione!)
 
-- In sviluppo sono esposti `window.__game` (Phaser.Game) e `window.__scene` (GameScene, con
-  `__scene.sim` = istanza di `Game`). Utili per portare la partita in un punto preciso:
+- `/?mode=2d` o `/?mode=3d` salta il menu iniziale.
+- In sviluppo sono esposti `window.__game` (Phaser.Game), `window.__scene` (GameScene, con
+  `__scene.sim` = istanza di `Game`) e `window.__app3d` (versione 3D: `__app3d.match.game`,
+  `__app3d.startLevel(i)`). Utili per portare la partita in un punto preciso:
   `for (...) sim.step(1/60)`. Avviare un livello: `__game.scene.getScene('menu').scene.start('game', { index: 2 })`.
 - **Il browser di sviluppo è lo stesso con cui l'utente gioca**: in `localStorage` ci sono i suoi
-  progressi e record reali (`horde-runner:progress`, `horde-runner:scores:<livello>`,
-  `horde-runner:initials`, `horde-runner:muted`). Prima di una prova salvarne una copia;
+  progressi e record reali. **Prima di ogni prova eseguire `window.__noSave = true`** (solo in sviluppo:
+  blocca il salvataggio di progressi e classifiche). Chiavi: (`horde-runner:progress`, `horde-runner:scores:<livello>`,
+  `horde-runner:initials`, `horde-runner:muted`, `horde-runner:settings`). Prima di una prova salvarne una copia;
   chiudere ogni partita forzata con una **sconfitta** (`sim.player.soldiers = 0`), mai con una
   vittoria (salverebbe record finti); alla fine verificare che i dati siano identici.
 - Con la scheda in background il browser rallenta/ferma i fotogrammi: animazioni e timer di
   Phaser avanzano solo quando la scheda è visibile, e clic/tasti simulati vengono accodati.
+- La prima volta che si apre il 3D (o dopo aver aggiunto un import di Three.js) Vite ottimizza la
+  dipendenza e **ricarica la pagina**: uno script lanciato in quel momento si interrompe, va rilanciato.
 
 ## Convenzioni
 

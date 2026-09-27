@@ -7,7 +7,13 @@ scegli le porte giuste, abbatti casse per ottenere bonus, raccogli armi e soprav
 zombi, bruti che lanciano rocce e un boss a fine livello. Si gioca nel browser, da computer o
 da telefono, e si può installare come app (anche offline).
 
-![Una partita: i bruti lanciano rocce, i cerchi rossi indicano dove cadranno](docs/img/gameplay.png)
+Dal menu iniziale (in stile Minecraft) si sceglie la versione **2D** (vista dall'alto) o **3D**
+(mondo a blocchi con vista isometrica o da dietro, e "shader pack" come Cartoon, Retrò pixel,
+Cinematico e Notte).
+
+| Versione 3D (vista isometrica, shader Cinematico) | Versione 2D |
+|---|---|
+| ![Versione 3D: bruti a blocchi in arrivo, zombi colpiti dai pallettoni, alberi low-poly](docs/img/gameplay-3d.png) | ![Versione 2D: i bruti lanciano rocce, i cerchi rossi indicano dove cadranno](docs/img/gameplay.png) |
 
 ## Come si gioca
 
@@ -21,16 +27,19 @@ da telefono, e si può installare come app (anche offline).
 - **Boss**: a fine livello la squadra si ferma e lo affronta. Abbattilo prima che ti raggiunga.
 - **Punteggio e classifica** in stile sala giochi: entra nella top 10 e lascia le tue iniziali.
 - Tasto **M** o 🔊 per il muto. Su telefono: menu del browser → "Aggiungi a schermata Home".
+- Nella versione 3D: tasto **C** cambia telecamera, tasto **V** cambia shader pack, **Esc** torna ai livelli.
+  Le stesse scelte (più il pacchetto di modelli) sono nel menu **Opzioni**.
 
 Cinque livelli (Periferia, Campagna, Zona industriale, Deserto, Passo innevato), sbloccabili in sequenza.
 
 ## Tecnologie
 
-TypeScript · [Phaser 4](https://phaser.io) · [Vite](https://vite.dev) · [Vitest](https://vitest.dev) ·
+TypeScript · [Phaser 4](https://phaser.io) (2D) · [Three.js](https://threejs.org) (3D) · [Vite](https://vite.dev) · [Vitest](https://vitest.dev) ·
 PWA con [vite-plugin-pwa](https://vite-pwa-org.netlify.app) · GitHub Actions + GitHub Pages.
 
-La logica del gioco è separata dalla grafica (cartella `src/core`), così potrà essere riutilizzata
-con altri motori (Three.js, Unity, Unreal).
+La logica del gioco è separata dalla grafica (cartella `src/core`): la versione 2D e quella 3D
+usano esattamente lo stesso "cervello". Nel 3D anche i **modelli** e gli **shader** sono pluggabili:
+si aggiungono stili nuovi scrivendo un modulo, senza toccare il resto.
 
 ## Per sviluppatori
 
@@ -52,7 +61,8 @@ Ogni push su `master` pubblica automaticamente il gioco su GitHub Pages.
 
 ## Crediti e licenze
 
-- Grafica e suoni: [Kenney.nl](https://kenney.nl) — pacchetti *Top-down Shooter*, *Impact Sounds*,
-  *Interface Sounds*, *Sci-fi Sounds*, *Music Jingles* (licenza **CC0**, pubblico dominio).
+- Grafica e suoni: [Kenney.nl](https://kenney.nl) — pacchetti *Top-down Shooter*, *Nature Kit*,
+  *Graveyard Kit*, *Impact Sounds*, *Interface Sounds*, *Sci-fi Sounds*, *Music Jingles*
+  (licenza **CC0**, pubblico dominio).
 - Font: [Press Start 2P](https://fonts.google.com/specimen/Press+Start+2P) di CodeMan38 (licenza **SIL OFL 1.1**).
 - Codice sviluppato con l'assistenza di [Claude Code](https://claude.com/claude-code).

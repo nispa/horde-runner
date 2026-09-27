@@ -7,7 +7,7 @@ Ultimo aggiornamento: 2026-09-27.
 
 Un gioco in stile pubblicità mobile ("crowd runner" con gate, casse, armi, orde e boss), costruito
 a step partendo dal modello più semplice, con **logica e dati riutilizzabili** per motori futuri.
-Per ora è ad uso personale; tra qualche giorno verrà pubblicato per farlo provare agli amici.
+È pubblicato online e viene fatto provare agli amici.
 
 ## Roadmap a step
 
@@ -16,7 +16,7 @@ Per ora è ad uso personale; tra qualche giorno verrà pubblicato per farlo prov
 | 1 | Prototipo Canvas 2D, core separato dalla grafica | ✅ fatto |
 | 2 | Renderer Phaser con sprite e suoni Kenney (CC0) | ✅ fatto |
 | 3 | PWA installabile e giocabile offline, pubblicata su GitHub Pages | ✅ fatto |
-| 4 | Vista 3D in prospettiva con Three.js (stesso core) | da fare |
+| 4 | Versione 3D con Three.js (stesso core), scelta 2D/3D da menu stile Minecraft, modelli e shader pluggabili | ✅ fatto |
 | 5 | Eventuale porting in Unreal Engine (già installato) — JSON riusabili come DataTable | opzionale |
 
 ## Fatto finora
@@ -38,6 +38,11 @@ Per ora è ad uso personale; tra qualche giorno verrà pubblicato per farlo prov
   Archivio dietro l'interfaccia `HighscoreStore` (pronta per una versione online).
 - **Audio**: effetti Kenney con varianti e limite di frequenza; muto con tasto M / pulsante 🔊.
 - **Strumenti**: bot, test di bilanciamento, tracce e tuner (vedi AGENTS.md).
+- **Menu iniziale** in HTML/CSS stile Minecraft (sfondo di terra, pulsanti di pietra, scritta gialla):
+  Gioca in 3D / Gioca in 2D / Opzioni (shader, telecamera, modelli, audio).
+- **Versione 3D** (Three.js): telecamera isometrica o da dietro (tasto C), 5 shader pack
+  (Nessuno, Cartoon, Retrò pixel, Cinematico, Notte; tasto V), pacchetti modelli `voxel` e `mixed`
+  (voxel + oggetti Kenney 3D), HUD e schermate in HTML, particelle a cubetti, stessi progressi e classifiche.
 
 ## Bilanciamento attuale (riferimento)
 
@@ -69,6 +74,12 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
 - **Zombi più aggressivi** (inseguono da 22 m) su richiesta dell'utente: prima si potevano aggirare
   senza conseguenze.
 - Le armi sono **sidegrade di forza simile**: ogni livello resta vincibile qualunque arma si preferisca.
+- **Menu iniziale e interfaccia 3D in HTML**, non dentro un motore: scegliere il motore prima di caricarlo
+  (2D e 3D sono pacchetti separati scaricati solo se servono) e riusare l'interfaccia con motori diversi.
+- **Modelli pluggabili** (richiesta dell'utente): si parte con voxel costruiti dal codice (leggeri, stile
+  Minecraft) + oggetti di scena low-poly; un pacchetto di personaggi low-poly si potrà aggiungere dopo.
+- **Folle in instancing** (una mesh per parte del corpo): centinaia di personaggi con pochi draw call.
+- **Soldati con l'elmetto** nel 3D: vista dall'alto, la squadra altrimenti sembrava una macchia color pelle.
 
 ## Pubblicazione
 
@@ -81,10 +92,14 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
 
 1. **Tri-shot in stile "1943"** (richiesta dell'utente): arma con colpo dritto + due diagonali;
    eventuale livello di potenziamento raccogliendo più volte la stessa arma.
-2. **Classifica online** condivisa: seconda implementazione di `HighscoreStore` + servizio esterno.
-3. Rifinitura: testi nitidi su schermi ad alta densità (scala del canvas), musica di sottofondo,
-   eventuale icona/aspetto delle armi sugli sprite dei soldati.
-4. **Step 4**: renderer Three.js con vista in prospettiva.
+2. **Pacchetto modelli low-poly** completo: `character-zombie.glb` del Graveyard Kit (già nel progetto,
+   con animazioni walk/attack) per zombi e bruti, personaggi Kenney per i soldati (SkinnedMesh +
+   AnimationMixer; attenzione alle prestazioni con molte istanze animate).
+3. **Classifica online** condivisa: seconda implementazione di `HighscoreStore` + servizio esterno.
+4. 3D: prestazioni sui telefoni (qualità ombre/risoluzione nelle Opzioni), altri shader pack, versione 2D
+   con l'interfaccia HTML di `ui-dom/` per uniformare le due versioni.
+5. Rifinitura: testi nitidi su schermi ad alta densità (2D), musica di sottofondo.
+6. **Step 5** (opzionale): Unreal Engine, riusando i JSON dei livelli.
 
 ## Note e problemi noti
 
@@ -93,3 +108,5 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
   (soldati invece di punti): si aggiornano alla prossima vittoria.
 - I record fatti dall'utente prima delle ultime ritarature non sono confrontabili con i nuovi punteggi.
 - Test nel browser: leggere la sezione dedicata in AGENTS.md (dati reali dell'utente in localStorage).
+- 3D: non ancora provato su telefoni reali; le ombre e il bloom (Cinematico/Notte) potrebbero pesare
+  sui dispositivi meno potenti.

@@ -2,6 +2,8 @@
 // L'interfaccia è asincrona apposta: oggi i dati stanno nel browser, domani la stessa
 // interfaccia potrà parlare con un server (classifica online) senza cambiare il gioco.
 
+import { savingDisabled } from './progress';
+
 export interface ScoreEntry {
   initials: string;
   score: number;
@@ -43,6 +45,7 @@ export class LocalHighscoreStore implements HighscoreStore {
     if (rank < 0) return -1;
     table.splice(rank, 0, entry);
     table.length = Math.min(table.length, TABLE_SIZE);
+    if (savingDisabled()) return rank;
     try { localStorage.setItem(KEY(level), JSON.stringify(table)); } catch { /* ignora */ }
     return rank;
   }
@@ -62,6 +65,7 @@ export function lastInitials(): string {
 }
 
 export function rememberInitials(initials: string): void {
+  if (savingDisabled()) return;
   try { localStorage.setItem(INITIALS_KEY, initials); } catch { /* ignora */ }
 }
 

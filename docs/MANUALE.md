@@ -25,7 +25,8 @@ capire come si fa un piccolo videogioco per il web, o riprendere il progetto per
 13. [Pubblicazione con GitHub Actions e Pages](#13-pubblicazione-con-github-actions-e-pages)
 14. [Risorse e licenze](#14-risorse-e-licenze)
 15. [Come è stato sviluppato: il ruolo dell'intelligenza artificiale](#15-come-è-stato-sviluppato-il-ruolo-dellintelligenza-artificiale)
-16. [Idee ed esercizi per continuare](#16-idee-ed-esercizi-per-continuare)
+16. [Il salto nel 3D: modelli e shader pluggabili](#16-il-salto-nel-3d-modelli-e-shader-pluggabili)
+17. [Idee ed esercizi per continuare](#17-idee-ed-esercizi-per-continuare)
 
 ---
 
@@ -53,7 +54,7 @@ verificando a ogni passo che fosse divertente e funzionante:
 | 1 | Prototipo con forme geometriche (Canvas 2D) | Capire se il gioco "funziona" prima di investire nella grafica |
 | 2 | Grafica e suoni veri con Phaser | Rendere il gioco piacevole senza toccare la logica |
 | 3 | PWA installabile e pubblicazione | Giocarlo sul telefono e farlo provare agli amici |
-| 4 | *(futuro)* 3D con Three.js | Vista in prospettiva come negli annunci |
+| 4 | 3D con Three.js, menu stile Minecraft | Mondo a blocchi, vista isometrica o da dietro, shader pack |
 | 5 | *(opzionale)* Unreal Engine | Versione "da store" con grafica avanzata |
 
 La cronologia reale del progetto (dai commit git):
@@ -63,7 +64,8 @@ La cronologia reale del progetto (dai commit git):
 3. armi raccoglibili, boss di fine livello, HUD con orde e zombi rimasti;
 4. classifica arcade con iniziali;
 5. nemici che lanciano oggetti e zombi più aggressivi;
-6. pubblicazione automatica su GitHub Pages.
+6. pubblicazione automatica su GitHub Pages;
+7. versione 3D con menu iniziale in stile Minecraft, modelli e shader pluggabili.
 
 > **Lezione**: un prototipo "brutto" che si può giocare vale più di una grafica bellissima
 > senza gioco. Le forme colorate dello step 1 esistono ancora: aprendo il gioco con
@@ -76,6 +78,7 @@ La cronologia reale del progetto (dai commit git):
 | **TypeScript** | 7 | JavaScript con i tipi: gli errori si vedono mentre si scrive, non mentre si gioca |
 | **Vite** | 8 | Server di sviluppo istantaneo (ricarica mentre modifichi) e build ottimizzata |
 | **Phaser** | 4 | Motore di gioco 2D per il web: sprite, animazioni, particelle, suoni, input |
+| **Three.js** | r186 | Grafica 3D nel browser (WebGL): scena, luci, ombre, instancing, post-produzione |
 | **Vitest** | 5 | Test automatici della logica di gioco, senza aprire il browser |
 | **vite-plugin-pwa** (Workbox) | 1.3 | Trasforma il sito in un'app installabile e giocabile offline |
 | **GitHub Actions + Pages** | — | Test, build e pubblicazione automatica a ogni modifica |
@@ -86,8 +89,8 @@ Alcune scelte e le alternative scartate:
 
 - **Phaser invece di React**: React è ottimo per le interfacce, ma un gioco vive dentro un
   `<canvas>` ridisegnato 60 volte al secondo; Phaser è fatto apposta per questo.
-- **Phaser invece di Three.js** (per ora): il 2D visto dall'alto è più semplice da realizzare e
-  da bilanciare; il 3D è previsto come step successivo, riusando tutta la logica.
+- **Prima Phaser, poi Three.js**: il 2D visto dall'alto è più semplice da realizzare e da
+  bilanciare; il 3D è arrivato dopo (capitolo 16), riusando tutta la logica senza cambiarla.
 - **Web invece di Unreal/Unity**: nessuna installazione, si gioca da un link, si aggiorna al
   volo. Unreal non esporta più per il browser, quindi resta un'opzione per il futuro.
 
@@ -398,7 +401,9 @@ Due dettagli da ricordare:
 
 | Risorsa | Autore | Licenza | Uso |
 |---|---|---|---|
-| *Top-down Shooter* | Kenney.nl | CC0 | soldati, zombi, terreni, casse, rocce, macchie |
+| *Top-down Shooter* | Kenney.nl | CC0 | soldati, zombi, terreni, casse, rocce, macchie (2D); texture dei blocchi (3D) |
+| *Nature Kit* | Kenney.nl | CC0 | alberi, rocce, cactus, cespugli low-poly (3D) |
+| *Graveyard Kit* | Kenney.nl | CC0 | lapidi, recinzioni, lampioni, zucche, cripte (3D) |
 | *Impact Sounds* | Kenney.nl | CC0 | colpi sul legno, casse, tonfi, pugni |
 | *Interface Sounds* | Kenney.nl | CC0 | gate, raccolta armi, conferme |
 | *Sci-fi Sounds* | Kenney.nl | CC0 | spari, razzi, esplosioni, fruscii |
@@ -427,7 +432,88 @@ gioco dell'autore. In pratica:
 Un metodo che ha funzionato: **misurare invece di indovinare**. Quando un numero non convinceva
 (la vita di un boss, la forza di un'arma), invece di cambiarlo "a occhio" si è misurato con i bot.
 
-## 16. Idee ed esercizi per continuare
+## 16. Il salto nel 3D: modelli e shader pluggabili
+
+Lo step 4 è la prova definitiva dell'architettura a strati: la versione 3D usa **lo stesso identico
+core** della versione 2D. Cambiano solo il renderer (`src/render/three/`) e l'interfaccia (in HTML).
+
+### Il menu iniziale in stile Minecraft
+
+Il primo schermo è una pagina HTML/CSS, fuori da qualunque motore: sfondo a blocchi di terra
+(ripetuto con `background: repeat` e `image-rendering: pixelated` per non sfocare i pixel), pulsanti
+di pietra con bordi chiari e scuri, il titolo con ombre sovrapposte e la classica scritta gialla di
+traverso che pulsa (una animazione CSS). Da qui si sceglie **2D** o **3D**: il motore viene scaricato
+solo dopo la scelta (*import dinamico*), così chi gioca in 2D non scarica Three.js e viceversa.
+
+### Dal core al mondo 3D
+
+Il core ragiona in coordinate astratte (strada da −1 a +1, distanza in metri); il mondo 3D usa i
+metri: la strada è larga 8 m e "avanti" è l'asse −Z. Due funzioni fanno da ponte:
+
+```ts
+export const wx = (x: number) => x * ROAD_HALF; // ROAD_HALF = 4 m
+export const wz = (z: number) => -z;
+```
+
+`World3D` fa lo stesso lavoro di `GameScene` nel 2D: legge lo stato del core a ogni fotogramma e
+aggiorna la scena; gli eventi (`zombieKilled`, `explosion`…) diventano particelle a cubetti,
+macchie a terra, suoni e scosse della telecamera.
+
+### Folle con l'instancing
+
+Disegnare 300 zombi come oggetti separati significherebbe migliaia di chiamate alla scheda video
+per fotogramma. Con l'**instancing** si disegnano tutte le copie di una forma in una sola chiamata,
+dando a ciascuna la sua posizione. Un personaggio voxel ha otto parti (gambe, busto, testa, occhi,
+braccia, fucile, elmetto): ogni parte è una `InstancedMesh`, e per ogni personaggio si calcola la
+matrice di ciascuna parte (posizione → rotazione della camminata attorno all'anca o alla spalla →
+dimensioni). Risultato: centinaia di zombi animati con una manciata di chiamate.
+
+### Pacchetti modelli pluggabili
+
+Il renderer non sa com'è fatto un soldato: lo chiede a un **pacchetto modelli** che implementa
+l'interfaccia `ModelPack` (folle, boss, casse, oggetti lanciati, armi, scenario). Oggi ce ne sono due:
+
+- **Voxel**: tutto a blocchi, costruito dal codice, con le texture dei tile Kenney del 2D;
+- **Misto**: personaggi voxel + oggetti di scena **low-poly** Kenney (file `.glb`) ai lati della
+  strada, scelti per ambiente (lapidi e zucche in periferia, cactus nel deserto, pini sulla neve).
+  Anche questi sono disegnati con l'instancing: ogni modello viene scomposto nelle sue mesh.
+
+Un nuovo stile (ad esempio personaggi low-poly animati) sarà solo un'altra implementazione della
+stessa interfaccia, selezionabile nelle Opzioni.
+
+### Shader pack come in Minecraft
+
+Gli **shader pack** di Minecraft cambiano l'aspetto del gioco senza toccarne le regole. Qui è lo
+stesso: ogni pack riceve renderer, scena, telecamera e luci, e restituisce una **catena di
+post-produzione** (`EffectComposer`): prima si disegna la scena in un'immagine, poi una serie di
+"filtri" la trasforma.
+
+| Pack | Come funziona |
+|---|---|
+| Nessuno | disegno diretto, il più leggero |
+| Cartoon | filtro di **Sobel** (trova i bordi dove la luminosità cambia di colpo) + colori a fasce |
+| Retrò pixel | scena disegnata a bassa risoluzione con bordi evidenziati + palette ridotta |
+| Cinematico | **bloom** (bagliore attorno alle parti luminose) + vignettatura + grana della pellicola |
+| Notte | cielo e nebbia scuri, luna azzurra, **torce** che seguono la squadra, bloom |
+
+Due lezioni imparate:
+
+- **Spazio colore.** Dentro la catena i colori sono *lineari* (adatti ai calcoli di luce), ma
+  l'occhio li percepisce in modo diverso: le "fasce" del Cartoon vanno calcolate nello spazio
+  percettivo (gamma), altrimenti gli scuri diventano neri e i colori si bruciano.
+- **Giocabilità prima dell'effetto.** La prima versione di "Notte" era bellissima ma non si vedeva la
+  squadra: una luce che la accompagna ha risolto, mantenendo l'atmosfera.
+
+### Telecamere
+
+- **Isometrica**: telecamera *ortografica* (niente prospettiva: gli oggetti lontani non rimpiccioliscono),
+  guardata di sbieco, come un diorama o i giochi isometrici classici;
+- **Da dietro**: telecamera *prospettica* alle spalle della squadra, come negli annunci.
+
+Per spostare la squadra con il dito si "proietta" il punto toccato sul terreno (*raycasting*): si
+ottiene il punto della strada corrispondente, qualunque sia la telecamera.
+
+## 17. Idee ed esercizi per continuare
 
 Dal più semplice al più impegnativo:
 
@@ -439,5 +525,7 @@ Dal più semplice al più impegnativo:
    `core/hazards.ts`, il disegno in `GameScene`, un test in `tests/core.test.ts`.
 4. **Classifica online**: una seconda implementazione di `HighscoreStore` con un piccolo servizio
    (ad esempio Supabase o un Cloudflare Worker) e un controllo di plausibilità dei punteggi.
-5. **Il salto in 3D**: un nuovo renderer con Three.js che legge lo stesso `Game`. Il core e i
-   dati restano identici: è la prova definitiva che l'architettura funziona.
+5. **Un nuovo shader pack**: ad esempio "Seppia" o "Visione notturna verde". Basta un file in
+   `src/render/three/shaders/` con uno shader GLSL (prendi `VignetteGrainShader` come esempio).
+6. **Un pacchetto modelli low-poly**: il modello `character-zombie.glb` del Graveyard Kit (già nel
+   progetto, con animazioni di camminata e attacco) può diventare gli zombi di un nuovo `ModelPack`.
