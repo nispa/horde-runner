@@ -23,8 +23,9 @@ a step partendo dal modello più semplice, con **logica e dati riutilizzabili** 
 
 - **Gameplay**: gate, casse con ricompense (soldati / cadenza / danno), gittata limitata a ciò
   che è visibile (26 m su 32), potenza di fuoco meno che lineare (`soldati^0.75`).
-- **Nemici**: zombi che inseguono lateralmente la squadra, bruti (più grossi, rossi, "morso"
-  multiplo e braccia lunghe), ondate raggruppate in orde.
+- **Nemici**: zombi con tre comportamenti (inseguitori, sulla propria corsia con scatto finale,
+  aggiratori che restano fuori dalla colonna di fuoco e tagliano da vicino), bruti lenti e dritti
+  (più grossi, rossi, "morso" multiplo e braccia lunghe), ondate raggruppate in orde.
 - **Armi** raccoglibili (`data/weapons.json`): fucile, mitragliatrice, fucile a pompa, lanciarazzi
   (danni ad area, extra contro casse e boss).
 - **Boss** di fine livello: la squadra si ferma, il boss avanza e morde; barra vita, avviso, ruggito.
@@ -50,10 +51,10 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
 
 | Livello | Terreno | Vita zombi | Boss (HP, attacco) | Bot attento | Bot casuale |
 |---|---|---|---|---|---|
-| 1 Periferia | erba | ×1 | Il Grosso (3500, rocce) | 90% | 0% |
-| 2 Campagna | sterrato | ×0,6 | Il Macellaio (7000, zombi lanciati) | 100% | 0% |
-| 3 Zona industriale | cemento | ×0,85 | Il Colosso (7500, massi) | 95% | 0% |
-| 4 Deserto | sabbia | ×0,6 | La Belva (8500, veloce, corvi) | 100% | 0% |
+| 1 Periferia | erba | ×0,85 | Il Grosso (3500, rocce) | 100% | 0% |
+| 2 Campagna | sterrato | ×0,6 | Il Macellaio (7000, zombi lanciati) | 95% | 0% |
+| 3 Zona industriale | cemento | ×0,75 | Il Colosso (7500, massi) | 80% | 0% |
+| 4 Deserto | sabbia | ×0,6 | La Belva (8500, veloce, corvi) | 95% | 0% |
 | 5 Passo innevato | neve | ×0,85 | Il Re dei Morti (16000, tutto) | 90% | 0% |
 
 - Il livello 1 era stato giudicato dall'utente "più difficile ma affrontabile" (prima di armi e boss):
@@ -72,7 +73,10 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
   lo mancavano. **Il boss lancia solo da lontano** e ciò che lancia atterra tra lui e la squadra:
   altrimenti i razzi esplodevano sugli oggetti vicino al boss e lui "si faceva male da solo".
 - **Zombi più aggressivi** (inseguono da 22 m) su richiesta dell'utente: prima si potevano aggirare
-  senza conseguenze.
+  senza conseguenze. Poi, sempre su sua osservazione, **comportamenti diversi**: se tutti inseguono si
+  mettono in fila davanti alla squadra, dove passano i proiettili, e diventano facili da falciare.
+- **Formazione 3D a passo costante** (0,3 m, disposizione di Vogel): con la distanza del 2D i soldati
+  3D, più larghi, risultavano ammassati.
 - Le armi sono **sidegrade di forza simile**: ogni livello resta vincibile qualunque arma si preferisca.
 - **Menu iniziale e interfaccia 3D in HTML**, non dentro un motore: scegliere il motore prima di caricarlo
   (2D e 3D sono pacchetti separati scaricati solo se servono) e riusare l'interfaccia con motori diversi.
@@ -82,6 +86,9 @@ Misurato con `smartBot` su 20 partite (vedi `npx vitest run balance --silent=fal
 - **Soldati con l'elmetto** nel 3D: vista dall'alto, la squadra altrimenti sembrava una macchia color pelle.
 
 ## Pubblicazione
+
+- **Il push lo fa l'utente**: gli amici giocano la versione online e ogni push su `master` la aggiorna.
+  Committare solo in locale.
 
 - Repository: https://github.com/nispa/horde-runner (pubblico)
 - Gioco online: **https://nispa.github.io/horde-runner/**

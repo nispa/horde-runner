@@ -19,6 +19,17 @@ export const HORDE_GAP = 12;
 export const ZOMBIE_CHASE_DISTANCE = 22;
 export const ZOMBIE_CHASE_SPEED = 0.55;
 export const BRUTE_CHASE_SPEED = 0.45;
+/** Quota di ogni comportamento tra gli zombi normali (il resto resta sulla sua corsia).
+ *  I bruti restano sempre sulla loro corsia: lenti e dritti, come carri armati. */
+export const ZOMBIE_STYLE_SHARE = { chase: 0.3, flank: 0.3 };
+/** Chi resta sulla sua corsia si lancia verso la squadra solo da vicino (metri) e a questa velocità. */
+export const LUNGE_DISTANCE = 6;
+export const LUNGE_SPEED = 0.9;
+/** Chi aggira si tiene a questa distanza laterale dalla squadra (fuori dalla colonna di fuoco)
+ *  finché non è entro FLANK_CUT_DISTANCE metri, poi taglia verso di lei. */
+export const FLANK_OFFSET = 0.6;
+export const FLANK_CUT_DISTANCE = 9;
+export const FLANK_SPEED = 0.8;
 /** Portata del contatto oltre il bordo della formazione (lane); i bruti arrivano più lontano. */
 export const ZOMBIE_REACH = 0.08;
 export const BRUTE_EXTRA_REACH = 0.12;

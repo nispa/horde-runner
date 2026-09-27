@@ -276,10 +276,18 @@ La potenza cresce con i soldati, ma non in modo lineare: `danno × soldati^0,75`
 | 💥 Fucile a pompa | 5 pallini a ventaglio, danno alto, corto raggio |
 | 🚀 Lanciarazzi | lento, esplode ad area, danno extra a casse e boss |
 
-### Nemici che inseguono
-Gli zombi si spostano lateralmente verso la squadra quando sono vicini: aggirarli richiede
-di muoversi presto. I **bruti** sono più grossi, resistenti, "mordono" più soldati e hanno
-le braccia lunghe.
+### Nemici con un po' di "cervello"
+Ogni zombi riceve a caso un comportamento quando compare:
+
+- **inseguitore**: punta dritto verso la squadra;
+- **sulla sua corsia**: barcolla nella sua traiettoria e si lancia verso la squadra solo da vicino;
+- **aggiratore**: da lontano si tiene *di lato*, fuori dalla colonna dei proiettili, e taglia verso la
+  squadra quando è a pochi metri.
+
+La prima versione faceva inseguire tutti: sembrava più minacciosa, ma gli zombi finivano in fila
+proprio davanti alla squadra, dove passano i proiettili, ed erano facilissimi da abbattere. Un'orda
+varia è più credibile e più difficile. I **bruti** avanzano lenti e dritti, sono più grossi,
+resistenti, "mordono" più soldati e hanno le braccia lunghe.
 
 ### Oggetti lanciati
 Descritti nei dati (`throws` per un'ondata, `attacks` per un boss), con fisica in `core/hazards.ts`:

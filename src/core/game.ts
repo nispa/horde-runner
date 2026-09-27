@@ -1,8 +1,9 @@
 // Simulazione del gioco. Non sa nulla di pixel, canvas o input: riceve comandi e avanza nel tempo.
 import {
   applyGate, computeScore, createRng, firepower, formatGate, formatReward, formationRadius, isGoodGate,
-  BOSS_BITE_INTERVAL, BOSS_HOLD_DISTANCE, BOSS_RADIUS, BRUTE_CHASE_SPEED, BRUTE_EXTRA_REACH, HORDE_GAP, LANE_LIMIT,
-  ZOMBIE_CHASE_DISTANCE, ZOMBIE_CHASE_SPEED, ZOMBIE_REACH, PLAYER_STEER_SPEED, SPAWN_AHEAD,
+  BOSS_BITE_INTERVAL, BOSS_HOLD_DISTANCE, BOSS_RADIUS, BRUTE_CHASE_SPEED, BRUTE_EXTRA_REACH, FLANK_CUT_DISTANCE,
+  FLANK_OFFSET, FLANK_SPEED, HORDE_GAP, LANE_LIMIT, LUNGE_DISTANCE, LUNGE_SPEED,
+  ZOMBIE_CHASE_DISTANCE, ZOMBIE_CHASE_SPEED, ZOMBIE_REACH, ZOMBIE_STYLE_SHARE, PLAYER_STEER_SPEED, SPAWN_AHEAD,
 } from './rules';
 import type { ScoreStats } from './rules';
 import { HAZARD, isLobbed, stepGround, stepLob } from './hazards';
@@ -147,13 +148,15 @@ export class Game {
     while (this.pendingWaves.length && this.pendingWaves[0].z - this.player.z < SPAWN_AHEAD) {
       const w = this.pendingWaves.shift()!;
       for (let i = 0; i < w.count; i++) {
+        const x = clamp((this.rng() * 2 - 1) * w.spread, -LANE_LIMIT, LANE_LIMIT);
         this.zombies.push({
           id: this.nextId++,
-          x: clamp((this.rng() * 2 - 1) * w.spread, -LANE_LIMIT, LANE_LIMIT),
+          x, homeX: x,
           z: w.z + this.rng() * Math.max(4, w.count * 0.2),
           hp: w.hp, maxHp: w.hp, speed: w.speed * (0.8 + this.rng() * 0.4), bite: w.bite ?? 1, horde: w.horde,
           // Primo lancio poco dopo essere entrati a tiro (sfalsato tra i nemici), poi ogni `every` secondi.
           throws: w.throws, throwTimer: w.throws ? 0.3 + this.rng() * Math.min(2, w.throws.every) : 0,
+          ...this.zombieBrain(w.bite ?? 1),
         });
       }
     }
@@ -172,13 +175,42 @@ export class Game {
     const px = this.player.x;
     for (const z of this.zombies) {
       z.z -= z.speed * dt;
-      // Inseguono la squadra: aggirarli richiede di spostarsi presto e con decisione.
-      if (z.z - this.player.z < ZOMBIE_CHASE_DISTANCE) {
-        const chase = z.bite > 1 ? BRUTE_CHASE_SPEED : ZOMBIE_CHASE_SPEED;
-        z.x += Math.sign(px - z.x) * Math.min(Math.abs(px - z.x), chase * dt);
-      }
+      this.steerZombie(z, px, dt);
     }
     this.zombies = this.zombies.filter(z => z.z > this.player.z - 2);
+  }
+
+  /** Sceglie il comportamento di uno zombi appena comparso (con il generatore casuale del livello). */
+  private zombieBrain(bite: number): Pick<Zombie, 'style' | 'side'> {
+    const r = this.rng();
+    const side = this.rng() < 0.5 ? -1 : 1;
+    if (bite > 1) return { style: 'lane', side };
+    if (r < ZOMBIE_STYLE_SHARE.chase) return { style: 'chase', side };
+    if (r < ZOMBIE_STYLE_SHARE.chase + ZOMBIE_STYLE_SHARE.flank) return { style: 'flank', side };
+    return { style: 'lane', side };
+  }
+
+  /** Movimento laterale secondo il comportamento: insieme formano un'orda meno prevedibile
+   *  di una semplice fila davanti alla squadra (che sarebbe facile da falciare). */
+  private steerZombie(z: Zombie, px: number, dt: number): void {
+    const dz = z.z - this.player.z;
+    const toward = (target: number, speed: number) => {
+      z.x += Math.sign(target - z.x) * Math.min(Math.abs(target - z.x), speed * dt);
+    };
+    if (z.style === 'chase') {
+      if (dz < ZOMBIE_CHASE_DISTANCE) toward(px, z.bite > 1 ? BRUTE_CHASE_SPEED : ZOMBIE_CHASE_SPEED);
+    } else if (z.style === 'flank') {
+      if (dz > FLANK_CUT_DISTANCE) {
+        // Resta ai lati della squadra, dal lato più comodo (se il bordo è troppo vicino cambia lato).
+        let target = px + z.side * FLANK_OFFSET;
+        if (Math.abs(target) > LANE_LIMIT) target = px - z.side * FLANK_OFFSET;
+        if (dz < ZOMBIE_CHASE_DISTANCE + 8) toward(clamp(target, -LANE_LIMIT, LANE_LIMIT), FLANK_SPEED);
+      } else toward(px, FLANK_SPEED);
+    } else {
+      // Sulla propria corsia, barcollando; da vicino si lancia verso la squadra.
+      if (dz < LUNGE_DISTANCE) toward(px, z.bite > 1 ? BRUTE_CHASE_SPEED : LUNGE_SPEED);
+      else toward(z.homeX + Math.sin(this.time * 1.5 + z.id) * 0.05, 0.3);
+    }
   }
 
   private moveBoss(dt: number): void {
@@ -374,6 +406,7 @@ export class Game {
         else if (h.kind === 'zombie') {
           this.zombies.push({
             id: this.nextId++, x: h.x, z: h.z, hp: h.hp, maxHp: h.hp, speed: 2.5, bite: 1, horde: -1, throwTimer: 0,
+            style: 'chase', homeX: h.x, side: 1,
           });
         }
       } else {

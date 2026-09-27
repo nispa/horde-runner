@@ -145,7 +145,14 @@ export interface Zombie {
   horde: number;
   throws?: AttackDef;
   throwTimer: number;
+  /** Comportamento: chi insegue, chi resta sulla sua corsia, chi aggira ai lati (vedi rules.ts). */
+  style: ZombieStyle;
+  /** Corsia "di casa" (per chi non insegue) e lato scelto per aggirare (−1 / +1). */
+  homeX: number;
+  side: number;
 }
+
+export type ZombieStyle = 'chase' | 'lane' | 'flank';
 
 /** Oggetto lanciato dai nemici. Le rocce e gli zombi volano a parabola (non si possono colpire);
  *  massi e corvi si muovono sulla strada e si possono abbattere. */

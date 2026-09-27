@@ -4,13 +4,15 @@
 import * as THREE from 'three';
 import type { Game } from '../../core/game';
 import { isLobbed, HAZARD } from '../../core/hazards';
-import { formatGate, formationRadius, isGoodGate } from '../../core/rules';
+import { formatGate, isGoodGate } from '../../core/rules';
 import type { GameEvent, GateOp, HazardKind, LevelDef, Wall, WeaponId } from '../../core/types';
 import { disposeTree } from './models/voxel';
 import { ROAD_HALF, type Crowd, type ModelPack, type Prop } from './models/types';
 import { roadTexture, textSprite } from './textures';
 
 const MAX_SOLDIERS = 80;
+/** Passo della formazione 3D in metri (disposizione di Vogel: distanza tra vicini ≈ 1,8 × passo). */
+const SQUAD_SPACING = 0.3;
 const MAX_ZOMBIES = 320;
 const MAX_BRUTES = 60;
 const MAX_BULLETS = 300;
@@ -142,12 +144,12 @@ export class World3D {
   private syncSquad(game: Game, time: number): void {
     const p = game.player;
     const n = Math.min(p.soldiers, MAX_SOLDIERS);
-    const r = formationRadius(p.soldiers);
     for (let i = 0; i < n; i++) {
-      // Disposizione "a girasole" (angolo aureo), come nel 2D.
+      // Disposizione "a girasole" (angolo aureo) a passo costante: ogni soldato ha il suo spazio
+      // (circa mezzo metro dai vicini), quindi la formazione si allarga con il numero di soldati.
       const ang = i * 2.39996;
-      const rad = r * Math.sqrt((i + 0.5) / n);
-      this.soldiers.set(i, wx(p.x + Math.cos(ang) * rad), wz(p.z + Math.sin(ang) * rad * 3), 0, 1.25, time * 12 + i);
+      const rad = SQUAD_SPACING * Math.sqrt(i + 0.5);
+      this.soldiers.set(i, wx(p.x) + Math.cos(ang) * rad, wz(p.z) + Math.sin(ang) * rad, 0, 1.15, time * 12 + i);
     }
     this.soldiers.setCount(n);
     this.soldiers.commit();

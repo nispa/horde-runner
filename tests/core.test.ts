@@ -154,8 +154,8 @@ describe('boss', () => {
 describe('HUD', () => {
   it('conta orde e zombi rimasti', () => {
     const level: LevelDef = { ...base, playerSpeed: 0, start: { soldiers: 10, fireRate: 20, damage: 50 }, entities: [
-      { type: 'wave', z: 10, count: 3, hp: 1, speed: 0, spread: 0 },
-      { type: 'wave', z: 14, count: 1, hp: 1, speed: 0, spread: 0, bite: 5 },
+      { type: 'wave', z: 6, count: 3, hp: 1, speed: 0, spread: 0 },
+      { type: 'wave', z: 8, count: 1, hp: 1, speed: 0, spread: 0, bite: 5 },
       { type: 'wave', z: 80, count: 4, hp: 1, speed: 0, spread: 0 },
     ] };
     const g = new Game(level);
@@ -239,5 +239,29 @@ describe('lanci dei nemici', () => {
     const g = new Game(thrower({ kind: 'crow', every: 100, count: 4, hp: 1, damage: 1 }));
     run(g, 5);
     expect(g.player.soldiers).toBeLessThan(20);
+  });
+});
+
+describe('comportamento degli zombi', () => {
+  it("chi aggira resta fuori dalla colonna di fuoco da lontano e taglia verso la squadra da vicino", () => {
+    const level: LevelDef = { ...base, playerSpeed: 0, start: { soldiers: 10, fireRate: 1, damage: 0 }, entities: [
+      { type: 'wave', z: 25, count: 40, hp: 1e9, speed: 2, spread: 0 },
+    ] };
+    const g = new Game(level, 7);
+    run(g, 3); // a ~19 m: nessuno è ancora abbastanza vicino da tagliare
+    const flankers = g.zombies.filter(z => z.style === 'flank');
+    expect(flankers.length).toBeGreaterThan(0);
+    for (const z of flankers) expect(Math.abs(z.x - g.player.x)).toBeGreaterThan(0.4);
+    run(g, 3.5); // entro 9 m: tagliano verso la squadra
+    for (const z of g.zombies.filter(q => q.style === 'flank' && q.z - g.player.z < 4)) {
+      expect(Math.abs(z.x - g.player.x)).toBeLessThan(0.4);
+    }
+  });
+
+  it('i bruti restano sulla loro corsia', () => {
+    const level: LevelDef = { ...base, entities: [{ type: 'wave', z: 30, count: 10, hp: 5, speed: 2, spread: 0.8, bite: 4 }] };
+    const g = new Game(level, 3);
+    run(g, 0.1);
+    expect(g.zombies.every(z => z.style === 'lane')).toBe(true);
   });
 });
