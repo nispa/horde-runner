@@ -1,0 +1,29 @@
+{
+  "name": "Livello 4 - Deserto",
+  "theme": "sand",
+  "length": 400,
+  "playerSpeed": 8,
+  "start": { "soldiers": 6, "fireRate": 3, "damage": 1 },
+  "entities": [
+    { "type": "gate", "z": 14, "left": { "op": "x", "value": 2 }, "right": { "op": "+", "value": 5 } },
+    { "type": "wall", "z": 34, "x": 0.5, "width": 0.9, "hp": 30, "crashCost": 8, "reward": { "kind": "fireRate", "value": 1 } },
+    { "type": "wave", "z": 48, "count": 14, "hp": 4, "speed": 3.5, "spread": 0.9 },
+    { "type": "gate", "z": 66, "left": { "op": "+", "value": 10 }, "right": { "op": "-", "value": 10 } },
+    { "type": "wall", "z": 86, "x": -0.5, "width": 0.9, "hp": 70, "crashCost": 10, "reward": { "kind": "soldiers", "value": 18 } },
+    { "type": "wave", "z": 100, "count": 18, "hp": 5, "speed": 3.8, "spread": 0.9 },
+    { "type": "wave", "z": 106, "count": 2, "hp": 50, "speed": 2.6, "spread": 0.7, "bite": 5 },
+    { "type": "gate", "z": 124, "left": { "op": "/", "value": 2 }, "right": { "op": "x", "value": 2 } },
+    { "type": "wall", "z": 140, "x": 0.5, "width": 0.9, "hp": 110, "crashCost": 14, "reward": { "kind": "damage", "value": 1 } },
+    { "type": "wave", "z": 156, "count": 30, "hp": 8, "speed": 4, "spread": 0.9 },
+    { "type": "gate", "z": 178, "left": { "op": "x", "value": 2 }, "right": { "op": "-", "value": 20 } },
+    { "type": "wall", "z": 194, "x": -0.5, "width": 0.9, "hp": 170, "crashCost": 18, "reward": { "kind": "fireRate", "value": 2 } },
+    { "type": "wave", "z": 210, "count": 40, "hp": 11, "speed": 4, "spread": 0.9 },
+    { "type": "wave", "z": 216, "count": 5, "hp": 100, "speed": 3, "spread": 0.8, "bite": 6 },
+    { "type": "gate", "z": 240, "left": { "op": "+", "value": 25 }, "right": { "op": "/", "value": 2 } },
+    { "type": "wall", "z": 256, "x": 0.5, "width": 0.9, "hp": 240, "crashCost": 22, "reward": { "kind": "soldiers", "value": 25 } },
+    { "type": "wave", "z": 274, "count": 55, "hp": 18, "speed": 4.2, "spread": 0.9 },
+    { "type": "gate", "z": 300, "left": { "op": "-", "value": 25 }, "right": { "op": "+", "value": 20 } },
+    { "type": "wave", "z": 345, "count": 110, "hp": 28, "speed": 4.4, "spread": 0.9 },
+    { "type": "wave", "z": 352, "count": 9, "hp": 280, "speed": 3, "spread": 0.8, "bite": 8 }
+  ]
+}

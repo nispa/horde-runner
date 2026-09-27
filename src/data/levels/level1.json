@@ -1,5 +1,6 @@
 {
   "name": "Livello 1 - Periferia",
+  "theme": "grass",
   "length": 320,
   "playerSpeed": 7,
   "start": {"soldiers": 5, "fireRate": 3, "damage": 1},

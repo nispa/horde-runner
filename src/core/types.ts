@@ -37,8 +37,12 @@ export interface WaveDef {
 
 export type LevelEntity = GateDef | WallDef | WaveDef;
 
+/** Ambientazione: suggerimento per il renderer (il core la ignora). */
+export type LevelTheme = 'grass' | 'dirt' | 'concrete' | 'sand' | 'snow';
+
 export interface LevelDef {
   name: string;
+  theme?: LevelTheme;
   length: number;
   playerSpeed: number;
   start: { soldiers: number; fireRate: number; damage: number };

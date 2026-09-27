@@ -3,9 +3,11 @@
 import Phaser from 'phaser';
 import { Game } from '../../core/game';
 import { formatGate, formationRadius, isGoodGate } from '../../core/rules';
-import type { GameEvent, GateOp, LevelDef, Wall } from '../../core/types';
+import type { GameEvent, GateOp, LevelDef, LevelTheme, Wall } from '../../core/types';
 import { bindInput } from '../../platform/input';
+import { completeLevel } from '../../platform/progress';
 import { Sfx } from './Sfx';
+import { button, label } from './ui';
 
 const FIXED_DT = 1 / 60;
 const VIEW_AHEAD = 32; // metri visibili davanti al giocatore
@@ -17,7 +19,8 @@ const CHARACTER_SCALE = 0.75;
 const HUD_HEIGHT = 44;
 
 // Frame del tilesheet Kenney (griglia 27 colonne x 64px).
-const FRAME = { grass: 0, crate: 128, splat: 319 };
+const FRAME = { crate: 128, splat: 319 };
+const GROUND_FRAME: Record<LevelTheme, number> = { grass: 0, dirt: 4, concrete: 6, snow: 11, sand: 14 };
 
 const COLOR = {
   good: 0x2f9cff,
@@ -58,15 +61,17 @@ export class GameScene extends Phaser.Scene {
   private zombies = new Map<number, Phaser.GameObjects.Image>();
   private decals: Decal[] = [];
 
-  constructor(private level: LevelDef) {
+  private index = 0;
+  private level!: LevelDef;
+
+  // Gli asset sono caricati da MenuScene.
+  constructor(private levels: LevelDef[]) {
     super('game');
   }
 
-  preload(): void {
-    this.load.spritesheet('tiles', 'assets/kenney/tiles.png', { frameWidth: 64, frameHeight: 64 });
-    this.load.image('soldier', 'assets/kenney/soldier.png');
-    this.load.image('zombie', 'assets/kenney/zombie.png');
-    Sfx.preload(this);
+  init(data: { index?: number }): void {
+    this.index = data.index ?? 0;
+    this.level = this.levels[this.index];
   }
 
   create(): void {
@@ -81,7 +86,7 @@ export class GameScene extends Phaser.Scene {
     this.decals = [];
 
     this.makeTextures();
-    this.grass = this.add.tileSprite(0, 0, 1, 1, 'tiles', FRAME.grass).setOrigin(0).setDepth(DEPTH.ground);
+    this.grass = this.add.tileSprite(0, 0, 1, 1, 'tiles', GROUND_FRAME[this.level.theme ?? 'grass']).setOrigin(0).setDepth(DEPTH.ground);
     this.road = this.add.tileSprite(0, 0, 1, 1, 'road').setOrigin(0.5, 0).setDepth(DEPTH.ground);
 
     this.soldiers = Array.from({ length: MAX_DRAWN_SOLDIERS }, () =>
@@ -112,12 +117,13 @@ export class GameScene extends Phaser.Scene {
 
     this.layout();
     this.scale.on('resize', this.layout, this);
+    this.showBanner();
 
     const unbind = bindInput(this.game.canvas, {
       // I tocchi sulla barra in alto (pulsante muto) non spostano la squadra.
       onSteer: (clientX, clientY) => { if (clientY > HUD_HEIGHT + 4) this.sim.steerTo(this.screenToLaneX(clientX)); },
       onNudge: dir => this.sim.steerTo(this.sim.player.targetX + dir * 0.04),
-      onTap: () => { if (this.sim.status !== 'playing') this.scene.restart(); },
+      onTap: () => {}, // a fine partita si usano i pulsanti (o Invio/Spazio, vedi showEnd)
     });
     this.events.once('shutdown', () => {
       unbind();
@@ -381,24 +387,42 @@ export class GameScene extends Phaser.Scene {
     this.endShown = true;
     const won = this.sim.status === 'won';
     const { w, h } = this;
+    const soldiers = this.sim.player.soldiers;
+    const next = this.index + 1 < this.levels.length ? this.index + 1 : null;
+    if (won) completeLevel(this.index, soldiers, this.levels.length);
+
+    const title = won ? (next === null ? 'CAMPAGNA COMPLETATA!' : 'VITTORIA!') : 'GAME OVER';
+    const primary = won
+      ? (next === null ? { text: 'Menu', go: () => this.scene.start('menu') } : { text: 'Prossimo livello ▶', go: () => this.scene.restart({ index: next }) })
+      : { text: 'Riprova', go: () => this.scene.restart({ index: this.index }) };
+
     const layer = this.add.container(0, 0).setDepth(DEPTH.overlay).setAlpha(0);
     layer.add([
       this.add.rectangle(0, 0, w, h, 0x000000, 0.65).setOrigin(0),
-      this.label(w / 2, h / 2 - 40, won ? 'VITTORIA!' : 'GAME OVER', 48, won ? '#6fc0ff' : '#ff6b6b'),
-      this.label(w / 2, h / 2 + 10, `Soldati: ${this.sim.player.soldiers}  ·  Zombi eliminati: ${this.sim.kills}`, 18),
-      this.label(w / 2, h / 2 + 55, 'Tocca per ricominciare', 18),
+      this.label(w / 2, h / 2 - 90, title, Math.min(48, w / 10), won ? '#6fc0ff' : '#ff6b6b'),
+      this.label(w / 2, h / 2 - 40, `Soldati: ${soldiers}  ·  Zombi eliminati: ${this.sim.kills}`, 18),
+      button(this, w / 2, h / 2 + 20, primary.text, primary.go),
     ]);
+    if (primary.text !== 'Menu') layer.add(button(this, w / 2, h / 2 + 88, 'Menu', () => this.scene.start('menu'), { color: 0x555a66 }));
     this.tweens.add({ targets: layer, alpha: 1, duration: 400 });
+
+    // Invio/Spazio = azione principale (dopo un attimo, per non saltare la schermata per sbaglio).
+    this.time.delayedCall(500, () => {
+      this.input.keyboard?.once('keydown-ENTER', primary.go);
+      this.input.keyboard?.once('keydown-SPACE', primary.go);
+    });
+  }
+
+  /** Nome del livello all'avvio, che poi sfuma. */
+  private showBanner(): void {
+    const text = this.label(this.w / 2, this.h * 0.35, this.level.name, Math.min(34, this.w / 14)).setDepth(DEPTH.hud);
+    this.tweens.add({ targets: text, alpha: 0, y: text.y - 30, delay: 1400, duration: 600, onComplete: () => text.destroy() });
   }
 
   // --- Utility ---
 
   private label(x: number, y: number, text: string, size: number, color = '#ffffff'): Phaser.GameObjects.Text {
-    return this.add.text(x, y, text, {
-      fontFamily: 'system-ui, sans-serif', fontStyle: 'bold', fontSize: `${size}px`,
-      color, stroke: '#000000', strokeThickness: 5,
-      resolution: window.devicePixelRatio || 1,
-    }).setOrigin(0.5);
+    return label(this, x, y, text, size, color);
   }
 
   /** Texture generate al volo per ciò che il pacchetto Kenney non ha (asfalto, proiettili, scintille). */

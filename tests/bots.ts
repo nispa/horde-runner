@@ -16,7 +16,8 @@ export const smartBot: Bot = g => {
   if (wall && wall.z - p.z < 26) {
     const dps = firepower(p.soldiers, p.damage) * p.fireRate;
     const time = (wall.z - p.z) / g.level.playerSpeed;
-    return dps * time * 0.8 > wall.hp ? wall.x : -wall.x;
+    // Se non riesce ad abbatterlo lo aggira (un muro centrale si aggira su un lato).
+    return dps * time * 0.8 > wall.hp ? wall.x : wall.x === 0 ? 0.8 : -wall.x;
   }
   return 0;
 };
