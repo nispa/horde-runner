@@ -4,7 +4,12 @@ import { VitePWA } from 'vite-plugin-pwa';
 export default defineConfig({
   base: './',
   // Phaser da solo pesa ~1,2 MB: è atteso.
-  build: { chunkSizeWarningLimit: 1600 },
+  build: {
+    chunkSizeWarningLimit: 1600,
+    // Un solo file CSS per tutto il gioco (~8 KB): con la suddivisione per parti, il CSS della
+    // versione 3D (caricata su richiesta) non veniva richiesto nella build di produzione.
+    cssCodeSplit: false,
+  },
   plugins: [
     VitePWA({
       registerType: 'autoUpdate',

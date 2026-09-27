@@ -135,6 +135,13 @@ Regole:
   di Vite**, che resta sulla porta 5173 con file vecchi mentre un nuovo server parte sulla 5174.
   Avviare con `node node_modules/vite/bin/vite.js --host --strictPort` e, se serve, chiudere il processo
   rimasto (`Get-NetTCPConnection -LocalPort 5173`).
+- **Provare anche la versione compilata** (`npm run build` + `node node_modules/vite/bin/vite.js preview --strictPort`,
+  porta 4173): alcuni problemi esistono solo lì. Esempio: con la suddivisione del CSS per parti, il CSS
+  della versione 3D (caricata su richiesta) non veniva caricato → HUD e menu 3D in fondo alla pagina
+  senza stile. Per questo `cssCodeSplit: false` in `vite.config.ts`.
+  Il **service worker** della PWA continua a servire la versione in cache: prima di provare
+  una build nuova su una porta già usata, rimuoverlo (`navigator.serviceWorker.getRegistrations()`
+  → `unregister()`, e `caches.delete(...)`).
 - Per provare gli schermi dei telefoni: una pagina con `<iframe>` di 844×390 e 390×844 dà un viewport
   reale (lo zoom della pagina no); impostare `__noSave = true` anche nella finestra di ogni iframe.
 - La prima volta che si apre il 3D (o dopo aver aggiunto un import di Three.js) Vite ottimizza la

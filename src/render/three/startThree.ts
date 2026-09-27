@@ -23,8 +23,15 @@ const FIXED_DT = 1 / 60;
 const HUD_HEIGHT = 60;
 
 export async function startThree(levels: LevelDef[], root: HTMLElement, settings: Settings): Promise<void> {
+  // Modelli e suoni sono una settantina di file: senza un avviso, su un telefono lento
+  // la schermata resterebbe vuota per qualche secondo.
+  const loading = document.createElement('div');
+  loading.className = 'ui-layer';
+  loading.innerHTML = '<div class="ui-screen"><h1 class="ui-title">CARICAMENTO...</h1><p class="ui-small">Modelli 3D e suoni</p></div>';
+  root.appendChild(loading);
   const app = new App3D(levels, root, settings);
   await app.init();
+  loading.remove();
   app.levelMenu();
 }
 
