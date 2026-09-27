@@ -1,7 +1,7 @@
 {
   "name": "Livello 3 - Zona industriale",
   "theme": "concrete",
-  "length": 380,
+  "length": 395,
   "playerSpeed": 7.5,
   "start": { "soldiers": 6, "fireRate": 3, "damage": 1 },
   "entities": [
@@ -10,6 +10,7 @@
     { "type": "wave", "z": 46, "count": 14, "hp": 4, "speed": 2.4, "spread": 0.9 },
     { "type": "gate", "z": 64, "left": { "op": "x", "value": 2 }, "right": { "op": "-", "value": 10 } },
     { "type": "gate", "z": 80, "left": { "op": "/", "value": 2 }, "right": { "op": "+", "value": 15 } },
+    { "type": "weapon", "z": 88, "x": -0.5, "weapon": "rocket" },
     { "type": "wall", "z": 96, "x": -0.5, "width": 0.9, "hp": 60, "crashCost": 10, "reward": { "kind": "fireRate", "value": 2 } },
     { "type": "wave", "z": 110, "count": 25, "hp": 8, "speed": 2.6, "spread": 0.9 },
     { "type": "wave", "z": 116, "count": 4, "hp": 70, "speed": 2, "spread": 0.7, "bite": 6 },
@@ -20,10 +21,13 @@
     { "type": "wall", "z": 206, "x": 0.5, "width": 0.9, "hp": 260, "crashCost": 18, "reward": { "kind": "soldiers", "value": 20 } },
     { "type": "wave", "z": 222, "count": 50, "hp": 18, "speed": 3, "spread": 0.9 },
     { "type": "wave", "z": 230, "count": 6, "hp": 150, "speed": 2.2, "spread": 0.8, "bite": 7 },
+    { "type": "weapon", "z": 244, "x": -0.5, "weapon": "minigun" },
+    { "type": "weapon", "z": 244, "x": 0.5, "weapon": "shotgun" },
     { "type": "gate", "z": 255, "left": { "op": "+", "value": 40 }, "right": { "op": "/", "value": 2 } },
     { "type": "wall", "z": 272, "x": -0.5, "width": 0.9, "hp": 350, "crashCost": 22, "reward": { "kind": "fireRate", "value": 2 } },
     { "type": "wave", "z": 290, "count": 55, "hp": 24, "speed": 3.1, "spread": 0.9 },
     { "type": "wave", "z": 335, "count": 85, "hp": 22, "speed": 3.3, "spread": 0.9 },
-    { "type": "wave", "z": 342, "count": 7, "hp": 220, "speed": 2.4, "spread": 0.8, "bite": 8 }
+    { "type": "wave", "z": 342, "count": 7, "hp": 220, "speed": 2.4, "spread": 0.8, "bite": 8 },
+    { "type": "boss", "z": 380, "name": "Il Colosso", "hp": 5500, "speed": 1.2, "bite": 5 }
   ]
 }

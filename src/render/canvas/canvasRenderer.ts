@@ -2,6 +2,7 @@
 // per passare a Phaser, Three.js o altro.
 import type { Game } from '../../core/game';
 import { formatGate, formationRadius, isGoodGate } from '../../core/rules';
+import { WEAPONS } from '../../core/weapons';
 import type { GameEvent, TextEvent } from '../../core/types';
 
 const VIEW_AHEAD = 32; // metri visibili davanti al giocatore
@@ -67,7 +68,21 @@ export class CanvasRenderer {
       ctx.fillRect(x - 1.5, y - 5, 3, 10);
     }
 
+    for (const k of game.pickups) {
+      if (k.taken || !visible(k.z)) continue;
+      const [x, y] = this.project(k.x, k.z - pz);
+      this.text(`${WEAPONS[k.weapon].icon} ${WEAPONS[k.weapon].name}`, x, y, 16);
+    }
     for (const z of game.zombies) if (visible(z.z)) this.drawZombie(pz, z.x, z.z, z.hp / z.maxHp);
+    const boss = game.boss;
+    if (boss && !boss.dead && visible(boss.z)) {
+      const [x, y] = this.project(boss.x, boss.z - pz);
+      ctx.fillStyle = '#d04848';
+      ctx.beginPath();
+      ctx.arc(x, y, 28, 0, Math.PI * 2);
+      ctx.fill();
+      this.text(`${boss.name} ${Math.ceil(boss.hp)}`, x, y - 40, 16);
+    }
     this.drawSquad(game);
     this.drawFloating(pz, dt);
     this.drawHud(game);
@@ -194,7 +209,7 @@ export class CanvasRenderer {
     ctx.fillStyle = 'rgba(0,0,0,0.5)';
     ctx.fillRect(0, 0, this.w, 44);
     ctx.textAlign = 'left';
-    this.text(`👤 ${p.soldiers}   ⚡ ${p.fireRate}/s   💥 ${p.damage}   ☠ ${game.kills}`, 12, 22, 16, COLORS.text, 'left');
+    this.text(`👤 ${p.soldiers}  ${WEAPONS[p.weapon].icon}  ☠ ${game.kills}  Orde ${game.hordesLeft}/${game.totalHordes}  🧟 ${game.zombiesLeft}`, 12, 22, 16, COLORS.text, 'left');
     ctx.fillStyle = '#555';
     ctx.fillRect(0, 44, this.w, 4);
     ctx.fillStyle = COLORS.good;

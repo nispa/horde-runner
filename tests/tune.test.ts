@@ -12,7 +12,7 @@ const SEEDS = Array.from({ length: 20 }, (_, i) => i + 1);
 function scaled(level: LevelDef, k: number): LevelDef {
   return {
     ...level,
-    entities: level.entities.map(e => (e.type === 'gate' ? e : { ...e, hp: Math.max(1, Math.round(e.hp * k)) })),
+    entities: level.entities.map(e => (e.type === 'gate' || e.type === 'weapon' ? e : { ...e, hp: Math.max(1, Math.round(e.hp * k)) })),
   };
 }
 

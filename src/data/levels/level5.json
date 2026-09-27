@@ -1,7 +1,7 @@
 {
   "name": "Livello 5 - Passo innevato",
   "theme": "snow",
-  "length": 440,
+  "length": 455,
   "playerSpeed": 8,
   "start": { "soldiers": 6, "fireRate": 3, "damage": 1 },
   "entities": [
@@ -12,6 +12,8 @@
     { "type": "wall", "z": 86, "x": 0, "width": 0.6, "hp": 70, "crashCost": 12, "reward": { "kind": "fireRate", "value": 2 } },
     { "type": "wave", "z": 100, "count": 22, "hp": 6, "speed": 3.2, "spread": 0.9 },
     { "type": "wave", "z": 106, "count": 3, "hp": 60, "speed": 2.4, "spread": 0.7, "bite": 5 },
+    { "type": "weapon", "z": 114, "x": -0.5, "weapon": "minigun" },
+    { "type": "weapon", "z": 114, "x": 0.5, "weapon": "shotgun" },
     { "type": "gate", "z": 122, "left": { "op": "-", "value": 15 }, "right": { "op": "+", "value": 15 } },
     { "type": "wall", "z": 138, "x": 0.5, "width": 0.9, "hp": 120, "crashCost": 14, "reward": { "kind": "damage", "value": 1 } },
     { "type": "wave", "z": 154, "count": 30, "hp": 9, "speed": 3.4, "spread": 0.9 },
@@ -23,10 +25,13 @@
     { "type": "wall", "z": 254, "x": 0.5, "width": 0.9, "hp": 400, "crashCost": 22, "reward": { "kind": "fireRate", "value": 2 } },
     { "type": "wave", "z": 270, "count": 45, "hp": 15, "speed": 3.8, "spread": 0.9 },
     { "type": "wave", "z": 278, "count": 5, "hp": 130, "speed": 2.8, "spread": 0.8, "bite": 7 },
+    { "type": "weapon", "z": 290, "x": -0.5, "weapon": "rocket" },
+    { "type": "weapon", "z": 290, "x": 0.5, "weapon": "minigun" },
     { "type": "gate", "z": 302, "left": { "op": "x", "value": 2 }, "right": { "op": "+", "value": 30 } },
     { "type": "wall", "z": 318, "x": -0.5, "width": 0.9, "hp": 300, "crashCost": 26, "reward": { "kind": "damage", "value": 1 } },
     { "type": "wave", "z": 336, "count": 60, "hp": 26, "speed": 4, "spread": 0.9 },
-    { "type": "wave", "z": 385, "count": 110, "hp": 26, "speed": 4.2, "spread": 0.9 },
-    { "type": "wave", "z": 392, "count": 8, "hp": 240, "speed": 3, "spread": 0.8, "bite": 8 }
+    { "type": "wave", "z": 385, "count": 90, "hp": 22, "speed": 4.2, "spread": 0.9 },
+    { "type": "wave", "z": 392, "count": 6, "hp": 200, "speed": 3, "spread": 0.8, "bite": 8 },
+    { "type": "boss", "z": 440, "name": "Il Re dei Morti", "hp": 8000, "speed": 1.3, "bite": 8 }
   ]
 }

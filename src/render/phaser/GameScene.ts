@@ -3,7 +3,8 @@
 import Phaser from 'phaser';
 import { Game } from '../../core/game';
 import { formatGate, formationRadius, isGoodGate } from '../../core/rules';
-import type { GameEvent, GateOp, LevelDef, LevelTheme, Wall } from '../../core/types';
+import type { GameEvent, GateOp, LevelDef, LevelTheme, Pickup, Wall, WeaponId } from '../../core/types';
+import { WEAPONS } from '../../core/weapons';
 import { bindInput } from '../../platform/input';
 import { completeLevel } from '../../platform/progress';
 import { Sfx } from './Sfx';
@@ -16,7 +17,8 @@ const MAX_DRAWN_SOLDIERS = 80;
 const MAX_BULLETS = 200;
 const MAX_DECALS = 60;
 const CHARACTER_SCALE = 0.75;
-const HUD_HEIGHT = 44;
+const HUD_HEIGHT = 58;
+const BOSS_SCALE = 2.6;
 
 // Frame del tilesheet Kenney (griglia 27 colonne x 64px).
 const FRAME = { crate: 128, splat: 319 };
@@ -29,7 +31,15 @@ const COLOR = {
   bullet: 0xffd84a,
   blood: 0x8a1c1c,
   wood: 0xc68a4a,
+  boss: 0xd04848,
 };
+
+/** Colore distintivo di ogni arma (raccolta sulla strada e HUD). */
+const WEAPON_COLOR: Record<WeaponId, number> = { rifle: 0x9aa4b2, minigun: 0x3fd0ff, shotgun: 0xff9a3c, rocket: 0xff5a5a };
+
+function css(color: number): string {
+  return `#${color.toString(16).padStart(6, '0')}`;
+}
 
 const DEPTH = { ground: 0, decal: 1, gate: 2, wall: 3, bullet: 4, zombie: 5, squad: 6, fx: 7, hud: 10, overlay: 20 };
 
@@ -48,7 +58,17 @@ export class GameScene extends Phaser.Scene {
   private road!: Phaser.GameObjects.TileSprite;
   private sparks!: Phaser.GameObjects.Particles.ParticleEmitter;
   private blood!: Phaser.GameObjects.Particles.ParticleEmitter;
+  private fire!: Phaser.GameObjects.Particles.ParticleEmitter;
   private hud!: Phaser.GameObjects.Text;
+  private hudWeapon!: Phaser.GameObjects.Text;
+  private hudHordes!: Phaser.GameObjects.Text;
+  private bossBar!: Phaser.GameObjects.Container;
+  private bossBack!: Phaser.GameObjects.Rectangle;
+  private bossFill!: Phaser.GameObjects.Rectangle;
+  private bossName!: Phaser.GameObjects.Text;
+  private bossImg!: Phaser.GameObjects.Image;
+  private bossBarWidth = 0;
+  private shownWeapon: WeaponId | null = null;
   private progress!: Phaser.GameObjects.Rectangle;
   private squadLabel!: Phaser.GameObjects.Text;
   private muteButton!: Phaser.GameObjects.Text;
@@ -59,6 +79,7 @@ export class GameScene extends Phaser.Scene {
   private gates = new Map<number, Phaser.GameObjects.Container>();
   private walls = new Map<number, WallView>();
   private zombies = new Map<number, Phaser.GameObjects.Image>();
+  private pickups = new Map<number, Phaser.GameObjects.Container>();
   private decals: Decal[] = [];
 
   private index = 0;
@@ -83,7 +104,9 @@ export class GameScene extends Phaser.Scene {
     this.gates.clear();
     this.walls.clear();
     this.zombies.clear();
+    this.pickups.clear();
     this.decals = [];
+    this.shownWeapon = null;
 
     this.makeTextures();
     this.grass = this.add.tileSprite(0, 0, 1, 1, 'tiles', GROUND_FRAME[this.level.theme ?? 'grass']).setOrigin(0).setDepth(DEPTH.ground);
@@ -92,7 +115,9 @@ export class GameScene extends Phaser.Scene {
     this.soldiers = Array.from({ length: MAX_DRAWN_SOLDIERS }, () =>
       this.add.image(0, 0, 'soldier').setScale(CHARACTER_SCALE).setAngle(-90).setDepth(DEPTH.squad).setVisible(false));
     this.bullets = Array.from({ length: MAX_BULLETS }, () =>
-      this.add.image(0, 0, 'bullet').setDepth(DEPTH.bullet).setVisible(false));
+      this.add.image(0, 0, 'bullet_rifle').setDepth(DEPTH.bullet).setVisible(false));
+    this.bossImg = this.add.image(0, 0, 'zombie').setScale(CHARACTER_SCALE * BOSS_SCALE).setTint(COLOR.boss)
+      .setDepth(DEPTH.zombie).setVisible(false);
     this.squadLabel = this.label(0, 0, '', 22).setDepth(DEPTH.squad);
 
     this.sparks = this.add.particles(0, 0, 'spark', {
@@ -103,13 +128,25 @@ export class GameScene extends Phaser.Scene {
       speed: { min: 30, max: 120 }, lifespan: 350, scale: { start: 0.8, end: 0 },
       tint: [COLOR.blood, 0x5a9e3a], emitting: false,
     }).setDepth(DEPTH.fx);
+    this.fire = this.add.particles(0, 0, 'spark', {
+      speed: { min: 60, max: 320 }, lifespan: 600, scale: { start: 2.2, end: 0 },
+      tint: [0xffd84a, 0xff8a2a, 0xff4a1a, 0x555555], emitting: false,
+    }).setDepth(DEPTH.fx);
 
-    this.hud = this.label(12, 22, '', 16).setOrigin(0, 0.5).setDepth(DEPTH.hud);
+    // HUD su due righe: statistiche della squadra / arma, orde e zombi rimasti.
+    this.hud = this.label(12, 17, '', 16).setOrigin(0, 0.5).setDepth(DEPTH.hud);
+    this.hudWeapon = this.label(12, 42, '', 16).setOrigin(0, 0.5).setDepth(DEPTH.hud);
+    this.hudHordes = this.label(0, 42, '', 16).setOrigin(1, 0.5).setDepth(DEPTH.hud);
+    this.bossName = this.label(0, -18, '', 16, '#ffb0b0');
+    this.bossBack = this.add.rectangle(0, 0, 1, 16, 0x000000, 0.7).setOrigin(0, 0.5);
+    this.bossFill = this.add.rectangle(0, 0, 1, 12, COLOR.boss).setOrigin(0, 0.5);
+    this.bossBar = this.add.container(0, HUD_HEIGHT + 34, [this.bossBack, this.bossFill, this.bossName])
+      .setDepth(DEPTH.hud).setVisible(false);
     this.add.rectangle(0, 0, 1, HUD_HEIGHT, 0x000000, 0.5).setOrigin(0).setDepth(DEPTH.hud - 1).setName('hudBg');
     this.progress = this.add.rectangle(0, HUD_HEIGHT, 0, 4, COLOR.good).setOrigin(0).setDepth(DEPTH.hud);
 
     this.sfx = new Sfx(this);
-    this.muteButton = this.label(0, HUD_HEIGHT / 2, '', 22).setDepth(DEPTH.hud).setInteractive({ useHandCursor: true });
+    this.muteButton = this.label(0, 17, '', 22).setDepth(DEPTH.hud).setInteractive({ useHandCursor: true });
     const toggleMute = () => { this.sfx.toggleMute(); this.updateMuteButton(); };
     this.muteButton.on('pointerdown', toggleMute);
     this.input.keyboard?.on('keydown-M', toggleMute);
@@ -156,11 +193,18 @@ export class GameScene extends Phaser.Scene {
     this.road.setTileScale((this.laneHalf * 2) / 256, 1);
     (this.children.getByName('hudBg') as Phaser.GameObjects.Rectangle).setSize(this.w, HUD_HEIGHT);
     this.muteButton.setX(this.w - 26);
+    this.hudHordes.setX(this.w - 12);
+    this.bossBarWidth = Math.min(this.w - 32, 480);
+    this.bossBar.setX((this.w - this.bossBarWidth) / 2);
+    this.bossBack.setSize(this.bossBarWidth, 16);
+    this.bossName.setX(this.bossBarWidth / 2);
     // Gli oggetti dipendono dalla larghezza della lane: si ricreano alla prossima sincronizzazione.
     for (const g of this.gates.values()) g.destroy();
     for (const wv of this.walls.values()) wv.box.destroy();
+    for (const k of this.pickups.values()) k.destroy();
     this.gates.clear();
     this.walls.clear();
+    this.pickups.clear();
   }
 
   private get ppm(): number {
@@ -195,7 +239,9 @@ export class GameScene extends Phaser.Scene {
 
     this.syncGates(pz);
     this.syncWalls(pz);
+    this.syncPickups(pz);
     this.syncZombies(pz);
+    this.syncBoss(pz);
     this.syncBullets(pz);
     this.syncSquad();
     this.syncDecals(pz);
@@ -228,6 +274,38 @@ export class GameScene extends Phaser.Scene {
         this.walls.delete(w.id);
       }
     }
+  }
+
+  private syncPickups(pz: number): void {
+    const t = this.time.now / 1000;
+    for (const k of this.sim.pickups) {
+      let view = this.pickups.get(k.id);
+      if (!k.taken && this.visible(k.z - pz)) {
+        if (!view) this.pickups.set(k.id, view = this.makePickup(k));
+        view.setPosition(this.sx(k.x), this.sy(k.z - pz) + Math.sin(t * 5 + k.id) * 4);
+      } else if (view) {
+        view.destroy();
+        this.pickups.delete(k.id);
+      }
+    }
+  }
+
+  private syncBoss(pz: number): void {
+    const b = this.sim.boss;
+    if (!b || !b.active || b.dead) {
+      this.bossImg.setVisible(false);
+      this.bossBar.setVisible(false);
+      return;
+    }
+    const t = this.time.now / 1000;
+    // Passo pesante: dondola e "respira".
+    this.bossImg.setVisible(this.visible(b.z - pz))
+      .setPosition(this.sx(b.x), this.sy(b.z - pz))
+      .setAngle(90 + Math.sin(t * 3) * 8)
+      .setScale(CHARACTER_SCALE * BOSS_SCALE * (1 + Math.sin(t * 6) * 0.03));
+    this.bossBar.setVisible(true);
+    this.bossName.setText(`${b.name}  ${Math.ceil(b.hp)}/${b.maxHp}`);
+    this.bossFill.width = this.bossBarWidth * (b.hp / b.maxHp);
   }
 
   private syncZombies(pz: number): void {
@@ -263,7 +341,7 @@ export class GameScene extends Phaser.Scene {
       const img = this.bullets[i];
       const b = list[i];
       if (!b) { img.setVisible(false); continue; }
-      img.setVisible(true).setPosition(this.sx(b.x), this.sy(b.z - pz));
+      img.setTexture(`bullet_${b.weapon}`).setVisible(true).setPosition(this.sx(b.x), this.sy(b.z - pz));
     }
   }
 
@@ -300,6 +378,22 @@ export class GameScene extends Phaser.Scene {
     const s = this.sim;
     const p = s.player;
     this.hud.setText(`👤 ${p.soldiers}   ⚡ ${p.fireRate}/s   💥 ${p.damage}   ☠ ${s.kills}`);
+    if (p.weapon !== this.shownWeapon) {
+      const w = WEAPONS[p.weapon];
+      this.hudWeapon.setText(`${w.icon} ${w.name}`).setColor(css(WEAPON_COLOR[p.weapon]));
+      // Piccolo "pop" quando si cambia arma (non all'avvio).
+      if (this.shownWeapon) this.tweens.add({ targets: this.hudWeapon, scale: { from: 1.5, to: 1 }, duration: 350, ease: 'Back.easeOut' });
+      this.shownWeapon = p.weapon;
+    }
+    const hordes = s.hordesLeft;
+    const bossAhead = s.boss === null && this.level.entities.some(e => e.type === 'boss');
+    const bossAlive = !!s.boss && !s.boss.dead;
+    this.hudHordes.setText(
+      hordes ? `Orde ${hordes}/${s.totalHordes}  🧟 ${s.zombiesLeft}`
+        : bossAlive ? '☠ Boss!'
+        : bossAhead ? '☠ Arriva il boss'
+        : '✔ Via libera',
+    );
     this.progress.width = this.w * s.progress;
   }
 
@@ -336,6 +430,18 @@ export class GameScene extends Phaser.Scene {
     return { box, hp, bar, barWidth: width };
   }
 
+  private makePickup(k: Pickup): Phaser.GameObjects.Container {
+    const w = WEAPONS[k.weapon];
+    const color = WEAPON_COLOR[k.weapon];
+    const r = Math.min(34, this.laneHalf * 0.16);
+    const glow = this.add.circle(0, 0, r + 8, color, 0.25);
+    const disc = this.add.circle(0, 0, r, 0x1b1f2a, 0.9).setStrokeStyle(4, color);
+    const icon = this.label(0, -2, w.icon, r);
+    const name = this.label(0, r + 14, w.name, 14, css(color));
+    this.tweens.add({ targets: glow, scale: 1.25, alpha: 0.1, duration: 600, yoyo: true, repeat: -1 });
+    return this.add.container(0, 0, [glow, disc, icon, name]).setDepth(DEPTH.wall);
+  }
+
   private addSplat(x: number, z: number, size: number): void {
     const img = this.add.image(0, 0, 'tiles', FRAME.splat)
       .setScale(0.45 * size).setAngle(Math.random() * 360).setAlpha(0.7).setDepth(DEPTH.decal);
@@ -353,7 +459,31 @@ export class GameScene extends Phaser.Scene {
     const pz = this.sim.player.z;
     switch (e.kind) {
       case 'text': return this.floatText(e.text, this.sx(e.x), this.sy(e.z - pz) - 20, e.tone === 'good');
-      case 'shot': return this.sfx.play('shot');
+      case 'shot': return this.sfx.play(e.weapon === 'shotgun' ? 'shotgun' : e.weapon === 'rocket' ? 'rocketLaunch' : 'shot');
+      case 'explosion': {
+        this.fire.explode(18, this.sx(e.x), this.sy(e.z - pz));
+        this.addSplat(e.x, e.z, 1.2);
+        this.cameras.main.shake(90, 0.004);
+        return this.sfx.play('explosion');
+      }
+      case 'weaponPickup':
+        this.fire.explode(14, this.sx(e.x), this.sy(e.z - pz));
+        return this.sfx.play('pickup');
+      case 'bossSpawn': return this.bossWarning(e.name);
+      case 'bossHit':
+        // Poche scintille: con armi rapide il boss resterebbe nascosto dagli effetti.
+        if (Math.random() < 0.25) this.sparks.explode(1, this.sx(e.x), this.sy(e.z - pz));
+        return this.sfx.play('bossHit');
+      case 'bossKilled': {
+        const x = this.sx(e.x), y = this.sy(e.z - pz);
+        for (let i = 0; i < 5; i++) {
+          this.time.delayedCall(i * 120, () => this.fire.explode(30, x + Phaser.Math.Between(-40, 40), y + Phaser.Math.Between(-40, 40)));
+        }
+        this.addSplat(e.x, e.z, 3);
+        this.cameras.main.shake(500, 0.012);
+        this.sfx.play('explosion');
+        return this.sfx.play('crateBreak');
+      }
       case 'wallHit':
         this.sparks.explode(2, this.sx(e.x), this.sy(e.z - pz) - 10);
         return this.sfx.play('woodHit');
@@ -372,6 +502,14 @@ export class GameScene extends Phaser.Scene {
       case 'gate': return this.sfx.play(e.good ? 'gateGood' : 'gateBad');
       case 'end': return this.sfx.play(e.won ? 'win' : 'lose');
     }
+  }
+
+  /** Avviso d'arrivo del boss: scritta lampeggiante, ruggito e scossa. */
+  private bossWarning(name: string): void {
+    const text = this.label(this.w / 2, this.h * 0.32, `⚠ ${name} ⚠`, Math.min(40, this.w / 12), '#ff5a5a').setDepth(DEPTH.hud);
+    this.tweens.add({ targets: text, alpha: 0.2, duration: 220, yoyo: true, repeat: 4, onComplete: () => text.destroy() });
+    this.cameras.main.shake(400, 0.008);
+    this.sfx.play('bossRoar');
   }
 
   private floatText(s: string, x: number, y: number, good: boolean): void {
@@ -433,8 +571,17 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0xdddddd).fillRect(0, 0, 5, 128).fillRect(251, 0, 5, 128);
     g.fillStyle(0xdddddd).fillRect(126, 0, 4, 56);
     g.generateTexture('road', 256, 128);
+    // Un proiettile per arma: fucile, mitragliatrice (sottile e azzurro), pallini, razzo.
     g.clear().fillStyle(COLOR.bullet).fillRoundedRect(0, 0, 4, 12, 2);
-    g.generateTexture('bullet', 4, 12);
+    g.generateTexture('bullet_rifle', 4, 12);
+    g.clear().fillStyle(0x9fe8ff).fillRoundedRect(0, 0, 3, 14, 1.5);
+    g.generateTexture('bullet_minigun', 3, 14);
+    g.clear().fillStyle(0xffb050).fillCircle(3, 3, 3);
+    g.generateTexture('bullet_shotgun', 6, 6);
+    g.clear().fillStyle(0xffd84a).fillTriangle(1, 22, 9, 22, 5, 28)
+      .fillStyle(0xdddddd).fillRoundedRect(1, 4, 8, 18, 3)
+      .fillStyle(0xff4a3a).fillTriangle(1, 6, 9, 6, 5, 0);
+    g.generateTexture('bullet_rocket', 10, 28);
     g.clear().fillStyle(0xffffff).fillCircle(4, 4, 4);
     g.generateTexture('spark', 8, 8);
     g.destroy();

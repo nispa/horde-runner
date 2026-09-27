@@ -3,12 +3,18 @@ import type { GateOp, RewardKind } from './types';
 
 export const LANE_LIMIT = 0.9;
 export const PLAYER_STEER_SPEED = 4;
-export const BULLET_SPEED = 30;
 /** Portata di tiro in metri: deve restare sotto la distanza visibile del renderer (32 m),
  *  così muri e zombi si vedono arrivare prima di poter essere colpiti. */
 export const FIRE_RANGE = 26;
 export const SPAWN_AHEAD = 35;
-export const MAX_BULLETS_PER_VOLLEY = 10;
+/** La squadra si ferma quando il boss è entro questa distanza. */
+export const BOSS_HOLD_DISTANCE = 20;
+/** Metà larghezza del boss in unità di lane. */
+export const BOSS_RADIUS = 0.35;
+/** Secondi tra un morso e l'altro del boss a contatto. */
+export const BOSS_BITE_INTERVAL = 0.6;
+/** Ondate più vicine di così (in metri) contano come un'unica orda nell'HUD. */
+export const HORDE_GAP = 12;
 
 export function applyGate(soldiers: number, gate: GateOp): number {
   switch (gate.op) {

@@ -35,7 +35,48 @@ export interface WaveDef {
   bite?: number;
 }
 
-export type LevelEntity = GateDef | WallDef | WaveDef;
+/** Arma raccoglibile sulla strada: si prende passandoci sopra. */
+export interface WeaponPickupDef {
+  type: 'weapon';
+  z: number;
+  x: number;
+  weapon: WeaponId;
+}
+
+/** Boss di fine livello: la squadra si ferma e lo affronta finché non muore. */
+export interface BossDef {
+  type: 'boss';
+  z: number;
+  name: string;
+  hp: number;
+  speed: number;
+  /** Soldati divorati a ogni morso quando raggiunge la squadra. */
+  bite: number;
+}
+
+export type LevelEntity = GateDef | WallDef | WaveDef | WeaponPickupDef | BossDef;
+
+export type WeaponId = 'rifle' | 'minigun' | 'shotgun' | 'rocket';
+
+export interface WeaponDef {
+  name: string;
+  icon: string;
+  /** Moltiplicatori rispetto alla cadenza e al danno della squadra. */
+  rateMul: number;
+  damageMul: number;
+  /** Moltiplicatore del danno contro i bersagli grossi: muri, casse e boss. */
+  wallMul: number;
+  /** Proiettili massimi per raffica (ognuno può avere più pallini). */
+  maxBullets: number;
+  pellets: number;
+  /** Apertura del ventaglio dei pallini (unità di lane al secondo). */
+  spread: number;
+  /** Gittata in metri (≤ FIRE_RANGE). */
+  range: number;
+  speed: number;
+  /** Raggio dell'esplosione in unità di lane (0 = nessuna esplosione). */
+  splash: number;
+}
 
 /** Ambientazione: suggerimento per il renderer (il core la ignora). */
 export type LevelTheme = 'grass' | 'dirt' | 'concrete' | 'sand' | 'snow';
@@ -45,7 +86,7 @@ export interface LevelDef {
   theme?: LevelTheme;
   length: number;
   playerSpeed: number;
-  start: { soldiers: number; fireRate: number; damage: number };
+  start: { soldiers: number; fireRate: number; damage: number; weapon?: WeaponId };
   entities: LevelEntity[];
 }
 
@@ -58,6 +99,7 @@ export interface Player {
   soldiers: number;
   fireRate: number;
   damage: number;
+  weapon: WeaponId;
   cooldown: number;
 }
 
@@ -80,13 +122,43 @@ export interface Zombie {
   maxHp: number;
   speed: number;
   bite: number;
+  /** Orda di appartenenza (per l'HUD). */
+  horde: number;
+}
+
+export interface Pickup extends WeaponPickupDef {
+  id: number;
+  taken: boolean;
+}
+
+export interface Boss {
+  id: number;
+  name: string;
+  x: number;
+  z: number;
+  hp: number;
+  maxHp: number;
+  speed: number;
+  bite: number;
+  /** In campo (è entrato nella zona di spawn). */
+  active: boolean;
+  dead: boolean;
+  biteTimer: number;
 }
 
 export interface Bullet {
   id: number;
+  weapon: WeaponId;
   x: number;
   z: number;
+  /** Velocità laterale (pallini del fucile a pompa). */
+  vx: number;
   damage: number;
+  wallMul: number;
+  splash: number;
+  speed: number;
+  /** Gittata misurata dalla posizione attuale della squadra (non dal punto di sparo). */
+  range: number;
 }
 
 export type GameStatus = 'playing' | 'won' | 'lost';
@@ -94,7 +166,12 @@ export type GameStatus = 'playing' | 'won' | 'lost';
 /** Eventi che il core emette e che il renderer traduce in testi, suoni ed effetti. */
 export type GameEvent =
   | { kind: 'text'; x: number; z: number; text: string; tone: 'good' | 'bad' }
-  | { kind: 'shot' }
+  | { kind: 'shot'; weapon: WeaponId }
+  | { kind: 'explosion'; x: number; z: number; radius: number }
+  | { kind: 'weaponPickup'; x: number; z: number; weapon: WeaponId }
+  | { kind: 'bossSpawn'; name: string }
+  | { kind: 'bossHit'; x: number; z: number }
+  | { kind: 'bossKilled'; x: number; z: number }
   | { kind: 'wallHit'; x: number; z: number }
   | { kind: 'wallDestroyed'; x: number; z: number }
   | { kind: 'zombieKilled'; x: number; z: number; bite: number }

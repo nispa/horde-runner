@@ -1,0 +1,6 @@
+{
+  "rifle":   { "name": "Fucile",         "icon": "🔫", "rateMul": 1,    "damageMul": 1,    "wallMul": 1,   "maxBullets": 10, "pellets": 1, "spread": 0,    "range": 26, "speed": 30, "splash": 0 },
+  "minigun": { "name": "Mitragliatrice", "icon": "⚡", "rateMul": 2.5,  "damageMul": 0.55, "wallMul": 1,   "maxBullets": 6,  "pellets": 1, "spread": 0.04, "range": 26, "speed": 34, "splash": 0 },
+  "shotgun": { "name": "Fucile a pompa", "icon": "💥", "rateMul": 0.6,  "damageMul": 2.6,  "wallMul": 1,   "maxBullets": 6,  "pellets": 5, "spread": 0.5,  "range": 15, "speed": 26, "splash": 0 },
+  "rocket":  { "name": "Lanciarazzi",    "icon": "🚀", "rateMul": 0.45, "damageMul": 1.0,  "wallMul": 2.5, "maxBullets": 3,  "pellets": 1, "spread": 0,    "range": 26, "speed": 18, "splash": 0.25 }
+}

@@ -21,6 +21,12 @@ const SOUNDS = {
   gateGood: { files: ['gateGood'], volume: 0.6 },
   gateBad: { files: ['gateBad'], volume: 0.6 },
   reward: { files: ['reward'], volume: 0.6 },
+  shotgun: { files: ['shotgun'], volume: 0.3, throttle: 120, detune: 150 },
+  rocketLaunch: { files: ['rocketLaunch'], volume: 0.3, throttle: 150, detune: 200 },
+  explosion: { files: ['explosion'], volume: 0.55, throttle: 80, detune: 200 },
+  pickup: { files: ['pickup'], volume: 0.7 },
+  bossHit: { files: ['bossHit'], volume: 0.3, throttle: 100, detune: 200 },
+  bossRoar: { files: ['bossRoar'], volume: 0.9 },
   win: { files: ['win'], volume: 0.7 },
   lose: { files: ['lose'], volume: 0.7 },
 } satisfies Record<string, SoundDef>;

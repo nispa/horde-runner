@@ -19,11 +19,15 @@ describe.runIf(process.env.TRACE)('traccia', () => {
       g.step(1 / 60);
       while (next < marks.length && g.player.z >= marks[next].z + 3) {
         const e = marks[next++], p = g.player;
-        const what = e.type === 'wave' ? `wave ${e.count}x${e.hp}${e.bite ? ` bite${e.bite}` : ''}` : e.type === 'wall' ? `wall hp${e.hp} ${e.reward.kind}` : 'gate';
+        if (e.type === 'boss') continue; // riportato a fine partita
+        const what = e.type === 'wave' ? `wave ${e.count}x${e.hp}${e.bite ? ` bite${e.bite}` : ''}`
+          : e.type === 'wall' ? `wall hp${e.hp} ${e.reward.kind}`
+          : e.type === 'weapon' ? `arma ${e.weapon} (ha: ${p.weapon})` : 'gate';
         rows.push(`z${String(e.z).padStart(4)} ${what.padEnd(22)} → soldati ${String(p.soldiers).padStart(4)}  dps ${Math.round(firepower(p.soldiers, p.damage) * p.fireRate)}`);
       }
     }
-    rows.push(`fine: ${g.status} a z=${Math.round(g.player.z)}`);
+    if (g.boss) rows.push(`boss ${g.boss.name}: vita ${Math.round(g.boss.hp)}/${g.boss.maxHp}`);
+    rows.push(`fine: ${g.status} a z=${Math.round(g.player.z)} con ${g.player.soldiers} soldati, arma ${g.player.weapon}`);
     console.log(rows.join('\n'));
   });
 });

@@ -1,9 +1,9 @@
 {
   "name": "Livello 1 - Periferia",
   "theme": "grass",
-  "length": 320,
+  "length": 335,
   "playerSpeed": 7,
-  "start": {"soldiers": 5, "fireRate": 3, "damage": 1},
+  "start": { "soldiers": 5, "fireRate": 3, "damage": 1 },
   "entities": [
     { "type": "gate", "z": 14, "left": { "op": "+", "value": 6 }, "right": { "op": "x", "value": 2 } },
     { "type": "wall", "z": 30, "x": -0.5, "width": 0.9, "hp": 30, "crashCost": 4, "reward": { "kind": "soldiers", "value": 10 } },
@@ -11,6 +11,7 @@
     { "type": "gate", "z": 66, "left": { "op": "x", "value": 2 }, "right": { "op": "-", "value": 6 } },
     { "type": "wall", "z": 82, "x": 0.5, "width": 0.9, "hp": 70, "crashCost": 6, "reward": { "kind": "fireRate", "value": 2 } },
     { "type": "wave", "z": 95, "count": 18, "hp": 5, "speed": 2.2, "spread": 0.9 },
+    { "type": "weapon", "z": 104, "x": 0.5, "weapon": "minigun" },
     { "type": "gate", "z": 118, "left": { "op": "-", "value": 10 }, "right": { "op": "+", "value": 12 } },
     { "type": "wall", "z": 132, "x": -0.5, "width": 0.9, "hp": 120, "crashCost": 8, "reward": { "kind": "damage", "value": 1 } },
     { "type": "wave", "z": 145, "count": 22, "hp": 6, "speed": 2.4, "spread": 0.9 },
@@ -22,6 +23,7 @@
     { "type": "wave", "z": 250, "count": 30, "hp": 14, "speed": 2.6, "spread": 0.9 },
     { "type": "wave", "z": 256, "count": 6, "hp": 90, "speed": 2, "spread": 0.8, "bite": 6 },
     { "type": "wave", "z": 285, "count": 60, "hp": 12, "speed": 3, "spread": 0.9 },
-    { "type": "wave", "z": 292, "count": 4, "hp": 120, "speed": 2.2, "spread": 0.7, "bite": 8 }
+    { "type": "wave", "z": 292, "count": 4, "hp": 120, "speed": 2.2, "spread": 0.7, "bite": 8 },
+    { "type": "boss", "z": 320, "name": "Il Grosso", "hp": 3000, "speed": 1.2, "bite": 3 }
   ]
 }

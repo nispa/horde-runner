@@ -1,7 +1,7 @@
 {
   "name": "Livello 2 - Campagna",
   "theme": "dirt",
-  "length": 340,
+  "length": 355,
   "playerSpeed": 7.5,
   "start": { "soldiers": 5, "fireRate": 3, "damage": 1 },
   "entities": [
@@ -13,6 +13,8 @@
     { "type": "wave", "z": 88, "count": 20, "hp": 6, "speed": 2.4, "spread": 0.9 },
     { "type": "wave", "z": 94, "count": 2, "hp": 35, "speed": 1.8, "spread": 0.6, "bite": 5 },
     { "type": "gate", "z": 112, "left": { "op": "+", "value": 12 }, "right": { "op": "/", "value": 2 } },
+    { "type": "weapon", "z": 120, "x": -0.5, "weapon": "shotgun" },
+    { "type": "weapon", "z": 120, "x": 0.5, "weapon": "minigun" },
     { "type": "wall", "z": 126, "x": -0.5, "width": 0.9, "hp": 140, "crashCost": 10, "reward": { "kind": "damage", "value": 1 } },
     { "type": "wave", "z": 140, "count": 28, "hp": 8, "speed": 2.6, "spread": 0.9 },
     { "type": "wave", "z": 148, "count": 3, "hp": 70, "speed": 2, "spread": 0.7, "bite": 6 },
@@ -24,6 +26,7 @@
     { "type": "wave", "z": 252, "count": 5, "hp": 90, "speed": 2.2, "spread": 0.8, "bite": 6 },
     { "type": "wall", "z": 280, "x": -0.5, "width": 0.9, "hp": 300, "crashCost": 20, "reward": { "kind": "fireRate", "value": 2 } },
     { "type": "wave", "z": 300, "count": 60, "hp": 13, "speed": 3.2, "spread": 0.9 },
-    { "type": "wave", "z": 308, "count": 4, "hp": 120, "speed": 2.4, "spread": 0.7, "bite": 7 }
+    { "type": "wave", "z": 308, "count": 4, "hp": 120, "speed": 2.4, "spread": 0.7, "bite": 7 },
+    { "type": "boss", "z": 340, "name": "Il Macellaio", "hp": 5000, "speed": 1.2, "bite": 4 }
   ]
 }
