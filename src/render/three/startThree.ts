@@ -55,7 +55,7 @@ class App3D {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.setSize(window.innerWidth, window.innerHeight);
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap; // PCFSoftShadowMap non esiste più in Three.js r186
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     root.appendChild(this.renderer.domElement);
     window.addEventListener('resize', () => this.resize());
