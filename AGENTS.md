@@ -131,6 +131,12 @@ Regole:
   vittoria (salverebbe record finti); alla fine verificare che i dati siano identici.
 - Con la scheda in background il browser rallenta/ferma i fotogrammi: animazioni e timer di
   Phaser avanzano solo quando la scheda è visibile, e clic/tasti simulati vengono accodati.
+- Su Windows fermare `npm run dev` (anche come processo in background) **non chiude il processo `node`
+  di Vite**, che resta sulla porta 5173 con file vecchi mentre un nuovo server parte sulla 5174.
+  Avviare con `node node_modules/vite/bin/vite.js --host --strictPort` e, se serve, chiudere il processo
+  rimasto (`Get-NetTCPConnection -LocalPort 5173`).
+- Per provare gli schermi dei telefoni: una pagina con `<iframe>` di 844×390 e 390×844 dà un viewport
+  reale (lo zoom della pagina no); impostare `__noSave = true` anche nella finestra di ogni iframe.
 - La prima volta che si apre il 3D (o dopo aver aggiunto un import di Three.js) Vite ottimizza la
   dipendenza e **ricarica la pagina**: uno script lanciato in quel momento si interrompe, va rilanciato.
 

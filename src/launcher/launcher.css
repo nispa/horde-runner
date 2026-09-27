@@ -6,7 +6,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start; /* centratura "sicura", vedi i margini automatici qui sotto */
   gap: 14px;
   padding: 16px;
   box-sizing: border-box;
@@ -16,6 +16,7 @@
   background-size: 64px 64px;
   image-rendering: pixelated;
   overflow-y: auto;
+  overflow-x: hidden;
   z-index: 10;
 }
 
@@ -29,10 +30,12 @@
 }
 
 .launcher > * { position: relative; }
+.launcher > :first-child { margin-top: auto; }
+.launcher > :nth-last-child(2) { margin-bottom: auto; } /* l'ultimo è il piè di pagina (fisso) */
 
 .launcher-title {
   position: relative;
-  margin: 0 0 8px;
+  margin: 36px 0 8px; /* spazio sopra per la scritta gialla */
   font-size: clamp(26px, 7vw, 56px);
   letter-spacing: 2px;
   color: #d8d8d8;
@@ -42,22 +45,26 @@
     3px 3px 0 #555, 6px 6px 0 #333, 9px 9px 0 #111;
 }
 
-/* La scritta gialla di traverso che pulsa ("splash text"). */
+/* La scritta gialla di traverso che pulsa ("splash text"): sopra il titolo, in alto a destra,
+   così non si sovrappone ai pulsanti. */
 .launcher-splash {
   position: absolute;
-  right: -48px;
-  bottom: -30px;
-  font-size: clamp(10px, 2.2vw, 16px);
+  right: 0;
+  bottom: 100%; /* appoggiata sopra il titolo */
+  margin-bottom: 6px;
+  z-index: 1;
+  font-size: clamp(9px, 2.2vw, 16px);
   color: #ffff3c;
   text-shadow: 2px 2px 0 #3f3f00;
   white-space: nowrap;
-  transform: rotate(-18deg);
+  transform-origin: left bottom; /* ruotando così la scritta sale verso destra, lontano dal titolo */
+  transform: rotate(-10deg);
   animation: launcher-splash 0.6s ease-in-out infinite alternate;
 }
 
 @keyframes launcher-splash {
-  from { transform: rotate(-18deg) scale(1); }
-  to { transform: rotate(-18deg) scale(1.12); }
+  from { transform: rotate(-10deg) scale(1); }
+  to { transform: rotate(-10deg) scale(1.1); }
 }
 
 .launcher-buttons {
@@ -127,4 +134,12 @@
   font-size: 8px;
   color: #bbb;
   pointer-events: none;
+}
+
+@media (max-height: 560px) {
+  .launcher { gap: 8px; padding: 8px; }
+  .launcher-title { font-size: clamp(20px, 5vw, 34px); margin: 30px 0 0; }
+  .launcher .mc-button { padding: 9px 10px; }
+  .launcher-buttons { gap: 7px; }
+  .launcher-hint { min-height: 0; margin: 0; }
 }

@@ -43,7 +43,7 @@ export function showLevelMenu(
   }).join('');
   const el = screen(root, `
     <h1 class="ui-title">HORDE RUNNER 3D</h1>
-    <div class="ui-buttons">${buttons}
+    <div class="ui-buttons levels">${buttons}
       <button class="mc-button" data-act="scores">🏆 Classifiche</button>
       <button class="mc-button" data-act="back">◀ Menu principale</button>
     </div>`);
