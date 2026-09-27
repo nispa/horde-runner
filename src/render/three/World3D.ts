@@ -43,6 +43,8 @@ export class World3D {
   readonly scene = new THREE.Scene();
   readonly sun = new THREE.DirectionalLight(0xffffff, 2.2);
   readonly ambient = new THREE.HemisphereLight(0xdfefff, 0x5a4a3a, 1.4);
+  /** Luce che accompagna la squadra: spenta di giorno, la accendono gli shader pack notturni. */
+  readonly squadLight = new THREE.PointLight(0xffd8a0, 0, 22, 1.2);
 
   private soldiers: Crowd;
   private zombies: Crowd;
@@ -58,6 +60,7 @@ export class World3D {
   private decals: THREE.InstancedMesh;
   private decalCount = 0;
   private disposables: { dispose(): void }[] = [];
+  private atmosphere: { background: THREE.Color; fog: THREE.Fog };
 
   constructor(private pack: ModelPack, private level: LevelDef) {
     const theme = level.theme ?? 'grass';
@@ -70,7 +73,8 @@ export class World3D {
     this.sun.castShadow = true;
     this.sun.shadow.mapSize.set(1024, 1024);
     Object.assign(this.sun.shadow.camera, { left: -22, right: 22, top: 30, bottom: -30, near: 1, far: 60 });
-    this.scene.add(this.ambient, this.sun, this.sun.target);
+    this.scene.add(this.ambient, this.sun, this.sun.target, this.squadLight);
+    this.atmosphere = { background: new THREE.Color(sky), fog: this.scene.fog as THREE.Fog };
 
     // Strada con asfalto a pixel, traguardo a scacchi, terreno e scenario dal pacchetto modelli.
     const roadLen = level.length + 120;
@@ -102,6 +106,18 @@ export class World3D {
     }
   }
 
+  /** Riporta cielo, nebbia e luci ai valori del livello (gli shader pack possono averli cambiati). */
+  resetAtmosphere(): void {
+    this.scene.background = this.atmosphere.background.clone();
+    this.scene.fog = this.atmosphere.fog.clone();
+    this.sun.color.set(0xffffff);
+    this.sun.intensity = 2.2;
+    this.ambient.color.set(0xdfefff);
+    this.ambient.groundColor.set(0x5a4a3a);
+    this.ambient.intensity = 1.4;
+    this.squadLight.intensity = 0;
+  }
+
   /** Sincronizza la scena con lo stato della partita. `time` in secondi (per le animazioni). */
   update(game: Game, dt: number, time: number): void {
     const pz = game.player.z;
@@ -110,6 +126,7 @@ export class World3D {
     // Il sole segue la squadra, così le ombre sono sempre nitide dove si gioca.
     this.sun.position.set(8, 20, wz(pz) + 6);
     this.sun.target.position.set(0, 0, wz(pz) - 8);
+    this.squadLight.position.set(wx(game.player.x), 3.5, wz(pz) - 3);
 
     this.syncSquad(game, time);
     this.syncZombies(game, time, visible);

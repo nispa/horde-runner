@@ -8,6 +8,7 @@ import { AudioPlayer } from '../../platform/audio';
 import { bindInput } from '../../platform/input';
 import { completeLevel } from '../../platform/progress';
 import { saveSettings, type Settings } from '../../platform/settings';
+import { SHADER_PACKS } from './catalog';
 import { Hud } from '../../ui-dom/hud';
 import { showLevelMenu, showResults, showScores } from '../../ui-dom/screens';
 import { createCameraRig, type CameraRig } from './cameras';
@@ -84,9 +85,7 @@ class App3D {
     const world = new World3D(this.pack, level);
     const { innerWidth: w, innerHeight: h } = window;
     const rig = createCameraRig(this.settings.camera, w, h);
-    const pipeline = getShaderPack(this.settings.shader).create({
-      renderer: this.renderer, scene: world.scene, camera: rig.camera, width: w, height: h, sun: world.sun, ambient: world.ambient,
-    });
+    const pipeline = this.createPipeline(world, rig);
     const hud = new Hud(this.root, level, this.audio.muted, () => this.audio.toggleMute());
     const unbind = bindInput(this.renderer.domElement, {
       onSteer: (x, y) => { if (y > HUD_HEIGHT) game.steerTo(this.screenToLane(x, y, rig)); },
@@ -95,6 +94,7 @@ class App3D {
     });
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'c' || e.key === 'C') this.switchCamera();
+      if (e.key === 'v' || e.key === 'V') this.switchShader();
       if (e.key === 'm' || e.key === 'M') this.audio.toggleMute();
       if (e.key === 'Escape' && this.match && !this.match.ended) { this.endMatch(); this.levelMenu(); }
     };
@@ -125,11 +125,29 @@ class App3D {
     saveSettings(this.settings);
     m.pipeline.dispose();
     m.rig = createCameraRig(this.settings.camera, window.innerWidth, window.innerHeight);
-    m.pipeline = getShaderPack(this.settings.shader).create({
-      renderer: this.renderer, scene: m.world.scene, camera: m.rig.camera,
-      width: window.innerWidth, height: window.innerHeight, sun: m.world.sun, ambient: m.world.ambient,
-    });
+    m.pipeline = this.createPipeline(m.world, m.rig);
     m.rig.follow(wx(m.game.player.x), wz(m.game.player.z), 1);
+  }
+
+  /** Passa allo shader pack successivo durante la partita (tasto V) e ricorda la scelta. */
+  private switchShader(): void {
+    const m = this.match;
+    if (!m) return;
+    const i = SHADER_PACKS.findIndex(s => s.id === this.settings.shader);
+    const next = SHADER_PACKS[(i + 1) % SHADER_PACKS.length];
+    this.settings.shader = next.id;
+    saveSettings(this.settings);
+    m.pipeline.dispose();
+    m.pipeline = this.createPipeline(m.world, m.rig);
+    m.hud.banner(`Shader: ${next.name}`);
+  }
+
+  private createPipeline(world: World3D, rig: CameraRig): ShaderPipeline {
+    world.resetAtmosphere();
+    return getShaderPack(this.settings.shader).create({
+      renderer: this.renderer, scene: world.scene, camera: rig.camera,
+      width: window.innerWidth, height: window.innerHeight, sun: world.sun, ambient: world.ambient, squadLight: world.squadLight,
+    });
   }
 
   /** Dal punto toccato sullo schermo alla posizione nella strada: si "proietta" il tocco sul terreno. */

@@ -12,6 +12,8 @@ export interface ShaderContext {
   /** Luci principali della scena, che lo shader pack può regolare. */
   sun: THREE.DirectionalLight;
   ambient: THREE.HemisphereLight;
+  /** Luce che segue la squadra (spenta di default): utile per atmosfere notturne. */
+  squadLight: THREE.PointLight;
 }
 
 export interface ShaderPipeline {
